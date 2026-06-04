@@ -440,7 +440,7 @@ body::before{
       <div class="ai-panel-header">
         <span class="ai-spark">✨</span>
         <span>AI 単語自動生成</span>
-        <span id="ai-bank-count" style="margin-left:auto;font-size:11px;font-weight:400;color:var(--ink-light)"></span>
+
       </div>
       <p class="ai-panel-desc">Anthropic API キーを入力すると、Claude が TOEIC600レベルの単語を自動生成・追加します。キーはこのブラウザにのみ保存されます。</p>
       <div class="ai-key-row">
@@ -701,7 +701,7 @@ function initStart(){
   $('meta-streak').textContent = calcStreak(db);
   $('meta-plays').textContent  = db.totalPlays||0;
   $('meta-best').textContent   = avgRate;
-  $('ai-bank-count').textContent = `現在 ${bank.length} 語`;
+  updateWordCount(db);
 
   showScreen('screen-start');
 }
@@ -837,9 +837,7 @@ choicesは必ず「正解の意味」を含む4択にしてください。誤答
     preview.innerHTML = addedWords.map(w=>`<span class="preview-word">${w}</span>`).join(' ');
     $('ai-status').className = 'ai-status ok';
     $('ai-status').textContent = `✅ ${addedWords.length}語を追加しました！（合計 ${allWords(db).length} 語）`;
-    $('ai-bank-count').textContent = `現在 ${allWords(db).length} 語`;
-
-    // 今日の情報ボックスも更新
+    updateWordCount(db);
     initStart();
 
   } catch(err){
@@ -1380,8 +1378,52 @@ function renderWordList(bank){
 /* ============================================================
    イベント
 ============================================================ */
-$('btn-ai-gen').addEventListener('click',  onGenerate);
-$('btn-key-save').addEventListener('click', ()=>{
+/* ============================================================
+   管理者パネル
+============================================================ */
+const ADMIN_PW = 'iloveenglish';
+
+function updateWordCount(db){
+  const n = allWords(db || loadDB()).length;
+  const el = $('word-count-num');
+  if(el) el.textContent = n;
+}
+
+function openAdminLogin(){
+  $('admin-login-panel').style.display = 'block';
+  $('ai-panel').style.display          = 'none';
+  $('admin-pw-input').value            = '';
+  $('admin-pw-error').style.display    = 'none';
+  setTimeout(()=> $('admin-pw-input').focus(), 50);
+}
+
+function closeAdmin(){
+  $('admin-login-panel').style.display = 'none';
+  $('ai-panel').style.display          = 'none';
+}
+
+function tryAdminLogin(){
+  const val = $('admin-pw-input').value;
+  if(val === ADMIN_PW){
+    $('admin-login-panel').style.display = 'none';
+    $('ai-panel').style.display          = 'block';
+    $('admin-pw-error').style.display    = 'none';
+    initApiKeyInput();
+  } else {
+    $('admin-pw-error').style.display = 'block';
+    $('admin-pw-input').value = '';
+    $('admin-pw-input').focus();
+    setTimeout(()=>{ $('admin-pw-error').style.display='none'; }, 3000);
+  }
+}
+
+/* ============================================================
+   イベントリスナー（nullセーフ）
+============================================================ */
+function on(id, evt, fn){ const el=$(id); if(el) el.addEventListener(evt, fn); }
+
+on('btn-ai-gen',    'click', onGenerate);
+on('btn-key-save',  'click', ()=>{
   const k = $('ai-key-input').value.trim();
   if(!k || !k.startsWith('sk-')){
     $('ai-status').className='ai-status err';
@@ -1393,14 +1435,18 @@ $('btn-key-save').addEventListener('click', ()=>{
   $('ai-status').className='ai-status ok';
   $('ai-status').textContent='✅ APIキーを保存しました';
 });
-$('btn-start').addEventListener('click',   startQuiz);
-$('mode-en-ja').addEventListener('click', ()=>{ quizMode='en-ja'; syncModeButtons(); });
-$('mode-ja-en').addEventListener('click', ()=>{ quizMode='ja-en'; syncModeButtons(); });
-$('btn-graph').addEventListener('click',   showGraph);
-$('btn-retry').addEventListener('click',   startQuiz);
-$('btn-graph2').addEventListener('click',  showGraph);
-$('btn-home').addEventListener('click',    initStart);
-$('btn-graph-back').addEventListener('click', initStart);
+on('btn-start',       'click', startQuiz);
+on('mode-en-ja',      'click', ()=>{ quizMode='en-ja'; syncModeButtons(); });
+on('mode-ja-en',      'click', ()=>{ quizMode='ja-en'; syncModeButtons(); });
+on('btn-graph',       'click', showGraph);
+on('btn-retry',       'click', startQuiz);
+on('btn-graph2',      'click', showGraph);
+on('btn-home',        'click', initStart);
+on('btn-graph-back',  'click', initStart);
+on('btn-admin-open',  'click', openAdminLogin);
+on('btn-admin-close', 'click', closeAdmin);
+on('btn-admin-login', 'click', tryAdminLogin);
+on('admin-pw-input',  'keydown', e=>{ if(e.key==='Enter') tryAdminLogin(); });
 
 document.querySelectorAll('.g-tab').forEach(tab=>{
   tab.addEventListener('click',()=>{
@@ -1415,7 +1461,6 @@ window.addEventListener('resize',()=>{ if($('screen-graph').classList.contains('
 /* ============================================================
    Boot
 ============================================================ */
-initApiKeyInput();
 initStart();
 </script>
 
