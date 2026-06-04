@@ -1,0 +1,1433 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="VocabQuiz">
+<meta name="theme-color" content="#5548d9">
+<title>VocabQuiz</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-512.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400;1,700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#1a1a2e;--ink-mid:#4a4a6a;--ink-light:#9090b0;
+  --surface:#ffffff;--surface-2:#f4f3fa;
+  --accent:#5548d9;--accent-dk:#3e31c0;--accent-lt:#e8e6ff;
+  --success:#0d9e75;--success-lt:#e0f7ef;
+  --danger:#d84040;--danger-lt:#fde8e8;
+  --warn:#c87800;--warn-lt:#fff3dc;
+  --r:14px;--r-lg:22px;
+  --shadow:0 6px 40px rgba(85,72,217,.13);
+  --ease:.18s cubic-bezier(.4,0,.2,1);
+  --font:system-ui,'Helvetica Neue',sans-serif;
+  --font-serif:Georgia,serif;
+}
+body{
+  font-family:var(--font);background:#ededf8;
+  min-height:100vh;display:flex;align-items:flex-start;
+  justify-content:center;padding:1.5rem 1rem 3rem;color:var(--ink);
+}
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:radial-gradient(circle,rgba(85,72,217,.11) 1px,transparent 1px);
+  background-size:28px 28px;
+}
+.app-wrapper{position:relative;z-index:1;width:100%;max-width:500px;margin-top:1rem}
+.screen{display:none}
+.screen.active{display:block;animation:fadeUp .3s ease both}
+@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── Buttons ── */
+.btn-primary{
+  display:block;width:100%;background:var(--accent);color:#fff;
+  border:none;border-radius:var(--r);padding:14px;
+  font-family:var(--font);font-size:15px;font-weight:600;
+  cursor:pointer;transition:background var(--ease),transform var(--ease);
+}
+.btn-primary:hover{background:var(--accent-dk)}
+.btn-primary:active{transform:scale(.98)}
+.btn-primary:disabled{background:#b0aad8;cursor:not-allowed}
+.btn-ghost{
+  display:block;width:100%;background:transparent;color:var(--ink-mid);
+  border:1.5px solid #d0cfe8;border-radius:var(--r);padding:13px;
+  font-family:var(--font);font-size:15px;font-weight:500;
+  cursor:pointer;transition:border-color var(--ease),color var(--ease);
+}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ── START SCREEN ── */
+.start-card{
+  background:var(--surface);border-radius:var(--r-lg);
+  padding:2.5rem 2rem;box-shadow:var(--shadow);
+  text-align:center;display:flex;flex-direction:column;gap:1rem;
+}
+.badge-pill{
+  display:inline-block;background:var(--accent-lt);color:var(--accent);
+  font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+  padding:5px 16px;border-radius:99px;
+}
+.logo{font-family:var(--font-serif);font-size:3rem;line-height:1;color:var(--ink);font-style:italic}
+.logo span{font-style:normal}
+.start-sub{
+  font-family:'Playfair Display',Georgia,serif;
+  font-style:italic;
+  font-size:1.15rem;
+  color:var(--ink-mid);
+  line-height:1.7;
+  letter-spacing:.01em;
+}
+
+.info-today{
+  display:flex;align-items:center;gap:12px;
+  background:var(--accent-lt);border-radius:var(--r);padding:14px 16px;text-align:left;
+}
+.info-day-badge{
+  background:var(--accent);color:#fff;font-size:13px;font-weight:700;
+  padding:6px 14px;border-radius:99px;white-space:nowrap;
+}
+.info-text{display:flex;flex-direction:column;gap:2px}
+.info-text strong{font-size:14px;font-weight:600;color:var(--ink)}
+.info-text span{font-size:12px;color:var(--ink-mid)}
+.info-done{
+  display:flex;align-items:center;gap:12px;
+  background:var(--success-lt);border-radius:var(--r);padding:14px 16px;text-align:left;
+}
+.info-done-icon{font-size:1.8rem}
+.info-done div{display:flex;flex-direction:column;gap:2px}
+.info-done strong{font-size:14px;font-weight:600;color:var(--success)}
+.info-done span{font-size:12px;color:#088a64}
+
+.start-meta-row{display:flex;gap:10px;justify-content:center}
+.meta-chip{
+  flex:1;background:var(--surface-2);border-radius:var(--r);
+  padding:10px 8px;display:flex;flex-direction:column;align-items:center;gap:2px;
+}
+.meta-chip span{font-size:1.2rem;font-weight:600;color:var(--ink)}
+.meta-chip small{font-size:11px;color:var(--ink-light);text-align:center}
+
+/* ── AI 単語生成パネル ── */
+.ai-panel{
+  background:var(--surface-2);border:1.5px solid var(--accent-lt);
+  border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:10px;text-align:left;
+}
+.ai-panel-header{
+  display:flex;align-items:center;gap:8px;
+  font-size:13px;font-weight:600;color:var(--accent);
+}
+.ai-spark{font-size:16px}
+.ai-panel-desc{font-size:12px;color:var(--ink-mid);line-height:1.6}
+.ai-gen-row{display:flex;gap:8px;align-items:center}
+.ai-count-input{
+  width:72px;border:1.5px solid #d0cfe8;border-radius:var(--r);
+  padding:9px 10px;font-size:14px;font-family:var(--font);color:var(--ink);
+  background:var(--surface);text-align:center;
+}
+.ai-count-input:focus{outline:none;border-color:var(--accent)}
+.btn-ai{
+  flex:1;background:var(--accent);color:#fff;border:none;border-radius:var(--r);
+  padding:10px 14px;font-family:var(--font);font-size:13px;font-weight:600;
+  cursor:pointer;transition:background var(--ease);display:flex;align-items:center;justify-content:center;gap:6px;
+}
+.btn-ai:hover{background:var(--accent-dk)}
+.btn-ai:disabled{background:#b0aad8;cursor:not-allowed}
+.ai-status{font-size:12px;min-height:18px;color:var(--ink-mid);display:flex;align-items:center;gap:6px}
+.ai-status.err{color:var(--danger)}
+.ai-status.ok{color:var(--success)}
+.ai-bank-info{font-size:12px;color:var(--ink-light);border-top:1px solid #e8e7f4;padding-top:8px}
+.ai-bank-info strong{color:var(--ink-mid);font-weight:600}
+
+/* APIキー入力 */
+.ai-key-row{display:flex;gap:8px;align-items:center}
+.ai-key-input{
+  flex:1;border:1.5px solid #d0cfe8;border-radius:var(--r);
+  padding:9px 12px;font-size:13px;font-family:var(--font);color:var(--ink);
+  background:var(--surface);min-width:0;
+}
+.ai-key-input:focus{outline:none;border-color:var(--accent)}
+.ai-key-input.saved{border-color:var(--success);background:var(--success-lt)}
+.btn-key-save{
+  background:var(--surface-2);color:var(--ink-mid);border:1.5px solid #d0cfe8;
+  border-radius:var(--r);padding:9px 14px;font-family:var(--font);font-size:13px;font-weight:600;
+  cursor:pointer;white-space:nowrap;transition:all var(--ease);flex-shrink:0;
+}
+.btn-key-save:hover{border-color:var(--accent);color:var(--accent)}
+.ai-key-note{font-size:11px;color:var(--ink-light);line-height:1.6}
+.ai-key-note a{color:var(--accent);text-decoration:none}
+.ai-key-note a:hover{text-decoration:underline}
+
+/* ストリーミングプレビュー */
+.ai-preview{
+  background:var(--surface);border:1px solid #e0dfef;border-radius:var(--r);
+  padding:10px 12px;font-size:12px;color:var(--ink-mid);
+  max-height:110px;overflow-y:auto;line-height:1.6;
+  display:none;font-family:monospace;
+}
+.ai-preview.visible{display:block}
+.preview-word{display:inline-block;background:var(--accent-lt);color:var(--accent);
+  border-radius:4px;padding:1px 6px;margin:2px;font-size:11px;font-weight:600;}
+
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{width:13px;height:13px;border:2px solid currentColor;border-top-color:transparent;
+  border-radius:50%;animation:spin .7s linear infinite;display:inline-block;flex-shrink:0}
+
+/* ── QUIZ SCREEN ── */
+.quiz-header{margin-bottom:1rem}
+.progress-track{height:6px;background:rgba(255,255,255,.7);border-radius:99px;overflow:hidden;margin-bottom:10px}
+.progress-fill{height:100%;background:var(--accent);border-radius:99px;width:0%;transition:width .4s ease}
+.quiz-hud{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--ink-mid);font-weight:500}
+.hud-timer{
+  display:flex;align-items:center;gap:5px;background:var(--surface);
+  padding:5px 12px;border-radius:99px;font-weight:600;color:var(--ink);transition:color var(--ease);
+}
+.hud-timer.urgent{color:var(--danger)}
+.hud-score{font-weight:600;color:var(--accent)}
+.question-card{
+  background:var(--surface);border-radius:var(--r-lg);
+  padding:1.8rem 1.5rem 1.5rem;text-align:center;box-shadow:var(--shadow);margin-bottom:1rem;
+}
+.word-day-badge{
+  display:inline-block;background:var(--accent-lt);color:var(--accent);
+  font-size:10px;font-weight:700;letter-spacing:.06em;padding:3px 12px;border-radius:99px;margin-bottom:.75rem;
+}
+.en-word{font-family:var(--font-serif);font-size:2.8rem;color:var(--ink);line-height:1.1;margin-bottom:.4rem}
+.word-pos{font-size:12px;color:var(--ink-light);font-style:italic;min-height:18px}
+.en-word-row{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:.3rem}
+.en-word-row .en-word{margin-bottom:0}
+.word-phonetic{font-size:14px;color:var(--ink-mid);letter-spacing:.04em;margin-bottom:.3rem;min-height:20px;font-style:italic}
+.speak-btn{
+  flex-shrink:0;
+  background:var(--accent-lt);border:none;border-radius:50%;
+  width:38px;height:38px;display:flex;align-items:center;justify-content:center;
+  color:var(--accent);cursor:pointer;
+  transition:background var(--ease),transform var(--ease),color var(--ease);
+}
+.speak-btn:hover{background:var(--accent);color:#fff;transform:scale(1.1)}
+.speak-btn:active{transform:scale(.95)}
+.speak-btn.speaking{background:var(--accent);color:#fff;animation:speakPulse .6s ease infinite alternate}
+@keyframes speakPulse{from{box-shadow:0 0 0 0 rgba(85,72,217,.5)}to{box-shadow:0 0 0 8px rgba(85,72,217,0)}}
+.choices-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.choice-btn{
+  background:var(--surface);border:2px solid #e0dfef;border-radius:var(--r);
+  padding:14px 10px;font-family:var(--font);font-size:14px;font-weight:500;
+  color:var(--ink);cursor:pointer;
+  transition:border-color var(--ease),background var(--ease),transform var(--ease);
+  text-align:center;line-height:1.4;
+}
+.choice-btn:hover:not(:disabled){border-color:var(--accent);background:var(--accent-lt);color:var(--accent);transform:translateY(-2px)}
+.choice-btn:disabled{cursor:default}
+@keyframes pulse-ok{0%{box-shadow:0 0 0 0 rgba(13,158,117,.4)}70%{box-shadow:0 0 0 10px rgba(13,158,117,0)}100%{box-shadow:0 0 0 0 rgba(13,158,117,0)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+.choice-btn.correct{border-color:var(--success);background:var(--success-lt);color:var(--success);animation:pulse-ok .5s ease}
+.choice-btn.wrong{border-color:var(--danger);background:var(--danger-lt);color:var(--danger);animation:shake .35s ease}
+.choice-btn.reveal-correct{border-color:var(--success);background:var(--success-lt);color:var(--success)}
+
+/* ── RESULT SCREEN ── */
+.result-card{
+  background:var(--surface);border-radius:var(--r-lg);
+  padding:2rem 1.75rem;box-shadow:var(--shadow);
+  display:flex;flex-direction:column;gap:1.25rem;
+}
+.result-top{text-align:center}
+.result-emoji{font-size:2.8rem;margin-bottom:.25rem}
+.result-title{font-family:var(--font-serif);font-size:1.6rem;color:var(--ink)}
+.score-ring-wrap{position:relative;width:140px;height:140px;margin:0 auto}
+.ring-inner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.ring-inner span{font-size:1.8rem;font-weight:600;color:var(--ink)}
+.ring-inner small{font-size:11px;color:var(--ink-light)}
+.result-stats{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px}
+.rs-chip{border-radius:var(--r);padding:10px 6px;display:flex;flex-direction:column;align-items:center;gap:2px}
+.rs-chip span{font-size:1.2rem;font-weight:600}
+.rs-chip small{font-size:10px}
+.correct-chip{background:var(--success-lt)}.correct-chip span{color:var(--success)}.correct-chip small{color:#088a64}
+.wrong-chip{background:var(--danger-lt)}.wrong-chip span{color:var(--danger)}.wrong-chip small{color:#b03030}
+.time-chip{background:var(--warn-lt)}.time-chip span{color:var(--warn)}.time-chip small{color:#a06000}
+.score-chip{background:var(--accent-lt)}.score-chip span{color:var(--accent)}.score-chip small{color:var(--accent-dk)}
+
+.review-details{border:1px solid #e8e7f4;border-radius:var(--r);overflow:hidden}
+.review-details summary{
+  padding:10px 14px;font-size:13px;font-weight:600;cursor:pointer;
+  color:var(--ink-mid);background:var(--surface-2);list-style:none;
+}
+.review-list{max-height:220px;overflow-y:auto}
+.review-item{display:flex;align-items:center;gap:8px;padding:9px 14px;border-top:1px solid #f0eff8;font-size:13px}
+.rdot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.rdot.ok{background:var(--success)}.rdot.ng{background:var(--danger)}
+.rword{font-weight:600;min-width:100px}
+.rans{flex:1;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.rans-ok{color:var(--success);font-weight:500}.rans-ng{color:var(--danger)}
+.rans-arrow{color:var(--ink-light);font-size:12px}
+.rtime{color:var(--ink-light);font-size:11px;white-space:nowrap}
+/* ── 例文パネル ── */
+.example-panel{
+  margin-top:10px;
+  animation:fadeUp .3s ease both;
+}
+.example-panel-inner{
+  background:var(--surface);border-radius:var(--r-lg);
+  padding:16px 18px;box-shadow:var(--shadow);
+  border-left:4px solid var(--accent);
+}
+.example-word-row{
+  display:flex;align-items:center;gap:8px;margin-bottom:8px;
+}
+.example-arrow{color:var(--accent);font-size:1.1rem;font-weight:700}
+.example-headword{
+  font-family:'Playfair Display',Georgia,serif;
+  font-style:italic;font-size:1.1rem;color:var(--ink);font-weight:700;
+}
+.example-sentence{
+  font-size:14px;color:var(--ink);line-height:1.7;margin-bottom:5px;font-weight:500;
+}
+.example-translation{
+  font-size:13px;color:var(--ink-mid);line-height:1.6;
+}
+.example-loading{
+  display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-mid);
+}
+
+.review-speak-btn{
+  background:var(--accent-lt);border:none;border-radius:50%;
+  width:24px;height:24px;display:flex;align-items:center;justify-content:center;
+  color:var(--accent);cursor:pointer;flex-shrink:0;padding:0;
+  transition:background var(--ease);
+}
+.review-speak-btn:hover{background:var(--accent);color:#fff}
+.result-actions{display:flex;flex-direction:column;gap:10px}
+
+/* ── GRAPH SCREEN ── */
+.graph-card{
+  background:var(--surface);border-radius:var(--r-lg);
+  padding:1.75rem 1.5rem;box-shadow:var(--shadow);
+  display:flex;flex-direction:column;gap:1.25rem;
+}
+.graph-header{display:flex;align-items:center;gap:12px}
+.back-btn{
+  background:var(--surface-2);border:none;border-radius:var(--r);padding:8px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  color:var(--ink-mid);transition:background var(--ease);flex-shrink:0;
+}
+.back-btn:hover{background:var(--accent-lt);color:var(--accent)}
+.graph-title{font-family:var(--font-serif);font-size:1.5rem;font-style:italic}
+.graph-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.gsm-chip{background:var(--surface-2);border-radius:var(--r);padding:10px 6px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:2px}
+.gsm-chip.accent{background:var(--accent-lt)}
+.gsm-chip span{font-size:1.1rem;font-weight:600;color:var(--ink)}
+.gsm-chip.accent span{color:var(--accent)}
+.gsm-chip small{font-size:10px;color:var(--ink-light)}
+.graph-tabs{display:flex;gap:6px}
+.g-tab{
+  flex:1;padding:9px 8px;border:1.5px solid #e0dfef;border-radius:var(--r);
+  background:var(--surface);font-family:var(--font);font-size:13px;font-weight:500;
+  color:var(--ink-mid);cursor:pointer;transition:border-color var(--ease),background var(--ease),color var(--ease);
+}
+.g-tab:hover{border-color:var(--accent);color:var(--accent)}
+.g-tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.canvas-wrap{border:1px solid #e8e7f4;border-radius:var(--r);padding:12px;background:var(--surface-2);overflow:hidden}
+.canvas-wrap canvas{display:block;width:100%}
+.graph-legend{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-mid)}
+.legend-dot{display:inline-block;width:10px;height:10px;border-radius:50%}
+.section-heading{font-size:15px;font-weight:600;color:var(--ink);border-left:3px solid var(--accent);padding-left:10px}
+.word-mastery-wrap{display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto}
+.mastery-row{display:grid;grid-template-columns:110px 1fr 44px 34px;align-items:center;gap:8px;font-size:12px}
+.mastery-word{font-weight:600;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mastery-bar-wrap{background:#f0eff8;border-radius:99px;height:7px;overflow:hidden}
+.mastery-bar{height:100%;border-radius:99px;transition:width .5s ease;min-width:4px}
+.mastery-bar.good{background:var(--success)}.mastery-bar.mid{background:var(--accent)}.mastery-bar.poor{background:var(--danger)}
+.mastery-rate{font-weight:600;text-align:right}
+.mastery-rate.good{color:var(--success)}.mastery-rate.mid{color:var(--accent)}.mastery-rate.poor{color:var(--danger)}
+.mastery-tries{color:var(--ink-light);text-align:right}
+.no-data{font-size:13px;color:var(--ink-light);text-align:center;padding:1.5rem}
+
+/* ── 単語管理タブ（グラフ画面内） ── */
+.word-list-wrap{display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto}
+.word-list-item{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 12px;background:var(--surface-2);border-radius:10px;font-size:13px;
+}
+.wl-badge{
+  font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;white-space:nowrap;
+  background:var(--accent-lt);color:var(--accent);
+}
+.wl-word{font-weight:600;min-width:100px}
+.wl-meaning{color:var(--ink-mid);flex:1}
+.wl-src{font-size:10px;color:var(--ink-light);white-space:nowrap}
+
+
+/* ── モード切替トグル ── */
+.mode-toggle-wrap{
+  display:flex;align-items:center;justify-content:center;
+  background:var(--surface-2);border-radius:99px;padding:4px;gap:2px;
+}
+.mode-btn{
+  flex:1;padding:8px 16px;border:none;border-radius:99px;
+  font-family:var(--font);font-size:13px;font-weight:600;
+  cursor:pointer;transition:all var(--ease);
+  color:var(--ink-light);background:transparent;white-space:nowrap;
+}
+.mode-btn.active{background:var(--accent);color:#fff;box-shadow:0 2px 8px rgba(85,72,217,.3)}
+.mode-btn:not(.active):hover{color:var(--accent)}
+.mode-select-wrap{display:flex;flex-direction:column;gap:8px}
+.mode-select-label{font-size:12px;font-weight:600;color:var(--ink-light);text-align:center;letter-spacing:.06em;text-transform:uppercase}
+.hud-mode-badge{
+  display:inline-block;align-self:flex-start;
+  background:var(--accent-lt);color:var(--accent);
+  font-size:11px;font-weight:700;padding:3px 12px;
+  border-radius:99px;margin-top:6px;letter-spacing:.02em;
+}
+
+/* ja→en モード時は問題文を日本語スタイルに */
+.question-card.ja-mode .en-word{
+  font-family:var(--font);
+  font-size:1.8rem;
+  font-style:normal;
+  color:var(--ink-mid);
+  letter-spacing:.04em;
+}
+.question-card.ja-mode .en-word-row{margin-bottom:.5rem}
+.question-card.ja-mode #btn-speak{display:none}
+.question-card.ja-mode #word-phonetic{display:none}
+
+/* 苦手バッジ */
+.word-day-badge.weak{background:var(--danger-lt);color:var(--danger)}
+.word-day-badge.ai-src{background:var(--accent-lt);color:var(--accent)}
+@media(max-width:400px){
+  .en-word{font-size:2.2rem}
+  .choices-grid{grid-template-columns:1fr}
+  .result-stats{grid-template-columns:1fr 1fr}
+  .graph-summary{grid-template-columns:1fr 1fr}
+  .mastery-row{grid-template-columns:90px 1fr 40px 30px}
+}
+</style>
+</head>
+<body>
+<div class="app-wrapper">
+
+<!-- ══════════ START ══════════ -->
+<div id="screen-start" class="screen active">
+  <div class="start-card">
+    <h1 class="logo"><span>Vocab</span>Quiz</h1>
+    <p class="start-sub">Slow progress is still progress.</p>
+
+    <div id="today-info-box"></div>
+
+    <div class="start-meta-row">
+      <div class="meta-chip"><span id="meta-streak">0</span><small>連続日数</small></div>
+      <div class="meta-chip"><span id="meta-plays">0</span><small>総プレイ</small></div>
+      <div class="meta-chip"><span id="meta-best">—</span><small>平均正答率</small></div>
+    </div>
+
+    <!-- モード選択 -->
+    <div class="mode-select-wrap">
+      <p class="mode-select-label">出題モードを選択</p>
+      <div class="mode-toggle-wrap">
+        <button class="mode-btn active" id="mode-en-ja">🇺🇸 英語 → 日本語</button>
+        <button class="mode-btn"        id="mode-ja-en">🇯🇵 日本語 → 英語</button>
+      </div>
+    </div>
+
+    <button id="btn-start" class="btn-primary">今日のクイズへ →</button>
+    <button id="btn-graph" class="btn-ghost">📊 進捗グラフを見る</button>
+
+    <!-- AI 生成パネル -->
+    <div class="ai-panel">
+      <div class="ai-panel-header">
+        <span class="ai-spark">✨</span>
+        <span>AI 単語自動生成</span>
+        <span id="ai-bank-count" style="margin-left:auto;font-size:11px;font-weight:400;color:var(--ink-light)"></span>
+      </div>
+      <p class="ai-panel-desc">Anthropic API キーを入力すると、Claude が TOEIC600レベルの単語を自動生成・追加します。キーはこのブラウザにのみ保存されます。</p>
+      <div class="ai-key-row">
+        <input id="ai-key-input" class="ai-key-input" type="password" placeholder="sk-ant-api03-..." autocomplete="off" spellcheck="false">
+        <button id="btn-key-save" class="btn-key-save">保存</button>
+      </div>
+      <p class="ai-key-note">APIキーは <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a> で取得できます。入力したキーはブラウザの localStorage にのみ保存され、Anthropic API への通信以外には使用されません。</p>
+      <div class="ai-gen-row">
+        <input id="ai-count" class="ai-count-input" type="number" min="5" max="30" value="10">
+        <button id="btn-ai-gen" class="btn-ai">
+          <span class="spinner" id="ai-spinner" style="display:none"></span>
+          <span id="ai-btn-text">語を AI 生成する ✨</span>
+        </button>
+      </div>
+      <div id="ai-preview" class="ai-preview"></div>
+      <div id="ai-status" class="ai-status"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ QUIZ ══════════ -->
+<div id="screen-quiz" class="screen">
+  <header class="quiz-header">
+    <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+    <div class="quiz-hud">
+      <span id="q-counter">1 / 10</span>
+      <span class="hud-timer" id="hud-timer">⏱ <span id="timer-num">15</span>s</span>
+      <span id="hud-score" class="hud-score">0pt</span>
+    </div>
+    <div class="hud-mode-badge" id="hud-mode-badge">🇺🇸 英→日</div>
+  </header>
+  <div class="question-card">
+    <div class="word-day-badge" id="word-day-badge">Day 1</div>
+    <div class="en-word-row">
+      <div class="en-word" id="en-word">—</div>
+      <button id="btn-speak" class="speak-btn" aria-label="発音を聞く" title="発音を聞く">
+        <svg id="speak-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+          <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+        </svg>
+      </button>
+    </div>
+    <div class="word-phonetic" id="word-phonetic"></div>
+    <div class="word-pos" id="word-pos"></div>
+  </div>
+  <div class="choices-grid" id="choices-grid"></div>
+
+  <!-- 解答後の例文パネル -->
+  <div class="example-panel" id="example-panel" style="display:none">
+    <div class="example-panel-inner">
+      <div class="example-word-row">
+        <span class="example-arrow">→</span>
+        <span class="example-headword" id="example-headword"></span>
+      </div>
+      <p class="example-sentence" id="example-sentence"></p>
+      <p class="example-translation" id="example-translation"></p>
+      <div class="example-loading" id="example-loading" style="display:none">
+        <span class="spinner" style="border-color:var(--accent);border-top-color:transparent"></span>
+        <span>例文を生成中...</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ RESULT ══════════ -->
+<div id="screen-result" class="screen">
+  <div class="result-card">
+    <div class="result-top">
+      <div class="result-emoji" id="result-emoji">🎉</div>
+      <h2 class="result-title" id="result-title">お見事！</h2>
+    </div>
+    <div class="score-ring-wrap">
+      <canvas id="ring-canvas" width="140" height="140"></canvas>
+      <div class="ring-inner"><span id="ring-pct">0%</span><small>正答率</small></div>
+    </div>
+    <div class="result-stats">
+      <div class="rs-chip correct-chip"><span id="r-correct">0</span><small>正解</small></div>
+      <div class="rs-chip wrong-chip"><span id="r-wrong">0</span><small>不正解</small></div>
+      <div class="rs-chip time-chip"><span id="r-avg-time">0s</span><small>平均時間</small></div>
+      <div class="rs-chip score-chip"><span id="r-score">0</span><small>スコア</small></div>
+    </div>
+    <details class="review-details">
+      <summary>問題レビュー ▾</summary>
+      <div class="review-list" id="review-list"></div>
+    </details>
+    <div class="result-actions">
+      <button id="btn-retry" class="btn-primary">もう一度</button>
+      <button id="btn-graph2" class="btn-ghost">📊 グラフで振り返る</button>
+      <button id="btn-home" class="btn-ghost">ホームへ</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ GRAPH ══════════ -->
+<div id="screen-graph" class="screen">
+  <div class="graph-card">
+    <div class="graph-header">
+      <button id="btn-graph-back" class="back-btn" aria-label="戻る">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <h2 class="graph-title">学習進捗</h2>
+    </div>
+    <div class="graph-summary" id="graph-summary"></div>
+    <div class="graph-tabs" role="tablist">
+      <button class="g-tab active" data-tab="accuracy">正答率</button>
+      <button class="g-tab" data-tab="score">スコア</button>
+      <button class="g-tab" data-tab="words">出題数</button>
+    </div>
+    <div class="canvas-wrap"><canvas id="graph-canvas" height="220"></canvas></div>
+    <div class="graph-legend" id="graph-legend"></div>
+    <h3 class="section-heading">単語別 正解率</h3>
+    <div class="word-mastery-wrap" id="word-mastery"></div>
+    <h3 class="section-heading">登録単語一覧</h3>
+    <div class="word-list-wrap" id="word-list"></div>
+  </div>
+</div>
+
+</div><!-- /.app-wrapper -->
+
+<script>
+'use strict';
+/* ============================================================
+   定数
+============================================================ */
+const TIME_LIMIT     = 15;
+const BASE_PTS       = 100;
+const BONUS_MAX      = 50;
+const WORDS_PER_DAY  = 10;
+const STORAGE_KEY    = 'vocabQuiz_v3';
+const API_URL        = 'https://api.anthropic.com/v1/messages';
+const MODEL          = 'claude-haiku-4-5-20251001';
+
+/* ============================================================
+   プリセット単語（初期50語）
+============================================================ */
+const PRESET_WORDS = [
+  {word:'negotiate',type:'verb',meaning:'交渉する',choices:['交渉する','増加する','拒絶する','承認する'],day:1,phonetic:'nɪˈɡoʊʃieɪt',src:'preset'},
+  {word:'significant',type:'adjective',meaning:'重要な、著しい',choices:['軽微な','重要な、著しい','不明確な','一般的な'],day:1,phonetic:'sɪɡˈnɪfɪkənt',src:'preset'},
+  {word:'implement',type:'verb',meaning:'実施する',choices:['削除する','調査する','実施する','延期する'],day:1,phonetic:'ˈɪmplɪment',src:'preset'},
+  {word:'approximately',type:'adverb',meaning:'およそ、約',choices:['ちょうど','最大で','およそ、約','最低でも'],day:1,phonetic:'əˈprɒksɪmətli',src:'preset'},
+  {word:'colleague',type:'noun',meaning:'同僚',choices:['上司','顧客','同僚','競合他社'],day:1,phonetic:'ˈkɒliːɡ',src:'preset'},
+  {word:'efficient',type:'adjective',meaning:'効率的な',choices:['非効率な','効果的な','包括的な','効率的な'],day:1,phonetic:'ɪˈfɪʃənt',src:'preset'},
+  {word:'deadline',type:'noun',meaning:'締め切り',choices:['予算','目標','会議','締め切り'],day:1,phonetic:'ˈdedlaɪn',src:'preset'},
+  {word:'persuade',type:'verb',meaning:'説得する',choices:['命令する','警告する','依頼する','説得する'],day:1,phonetic:'pərˈsweɪd',src:'preset'},
+  {word:'revenue',type:'noun',meaning:'収益、歳入',choices:['費用','損失','在庫','収益、歳入'],day:1,phonetic:'ˈrevənjuː',src:'preset'},
+  {word:'acknowledge',type:'verb',meaning:'認める',choices:['否定する','無視する','提案する','認める'],day:1,phonetic:'əkˈnɒlɪdʒ',src:'preset'},
+  {word:'allocate',type:'verb',meaning:'割り当てる',choices:['割り当てる','削減する','評価する','報告する'],day:2,phonetic:'ˈæləkeɪt',src:'preset'},
+  {word:'subsequent',type:'adjective',meaning:'その後の',choices:['以前の','その後の','同時の','不定期の'],day:2,phonetic:'ˈsʌbsɪkwənt',src:'preset'},
+  {word:'comprehensive',type:'adjective',meaning:'包括的な',choices:['部分的な','簡潔な','包括的な','任意の'],day:2,phonetic:'ˌkɒmprɪˈhensɪv',src:'preset'},
+  {word:'facilitate',type:'verb',meaning:'促進する',choices:['阻止する','促進する','記録する','変更する'],day:2,phonetic:'fəˈsɪlɪteɪt',src:'preset'},
+  {word:'mandatory',type:'adjective',meaning:'義務的な',choices:['任意の','推奨の','義務的な','暫定的な'],day:2,phonetic:'ˈmændətɔːri',src:'preset'},
+  {word:'surplus',type:'noun',meaning:'余剰、黒字',choices:['不足','余剰、黒字','均衡','赤字'],day:2,phonetic:'ˈsɜːrpləs',src:'preset'},
+  {word:'verify',type:'verb',meaning:'確認する、検証する',choices:['修正する','確認する、検証する','提出する','却下する'],day:2,phonetic:'ˈverɪfaɪ',src:'preset'},
+  {word:'fluctuate',type:'verb',meaning:'変動する',choices:['安定する','変動する','低下する','増加する'],day:2,phonetic:'ˈflʌktʃueɪt',src:'preset'},
+  {word:'initiative',type:'noun',meaning:'取り組み、主導権',choices:['取り組み、主導権','結果','障害','報告'],day:2,phonetic:'ɪˈnɪʃətɪv',src:'preset'},
+  {word:'delegate',type:'verb',meaning:'委任する',choices:['拒否する','委任する','監視する','依頼する'],day:2,phonetic:'ˈdelɪɡeɪt',src:'preset'},
+  {word:'considerably',type:'adverb',meaning:'かなり',choices:['わずかに','かなり','ほとんど','均等に'],day:3,phonetic:'kənˈsɪdərəbli',src:'preset'},
+  {word:'obsolete',type:'adjective',meaning:'時代遅れの',choices:['最新の','時代遅れの','有望な','標準的な'],day:3,phonetic:'ˈɒbsəliːt',src:'preset'},
+  {word:'comply',type:'verb',meaning:'従う、準拠する',choices:['従う、準拠する','違反する','提案する','要求する'],day:3,phonetic:'kəmˈplaɪ',src:'preset'},
+  {word:'potential',type:'noun',meaning:'可能性、潜在能力',choices:['実績','可能性、潜在能力','限界','欠点'],day:3,phonetic:'pəˈtenʃəl',src:'preset'},
+  {word:'mutual',type:'adjective',meaning:'相互の',choices:['一方的な','相互の','個別の','共同の'],day:3,phonetic:'ˈmjuːtʃuəl',src:'preset'},
+  {word:'sustainable',type:'adjective',meaning:'持続可能な',choices:['一時的な','持続可能な','急速な','不安定な'],day:3,phonetic:'səˈsteɪnəbəl',src:'preset'},
+  {word:'assessment',type:'noun',meaning:'評価、査定',choices:['提案','計画','評価、査定','通知'],day:3,phonetic:'əˈsesmənt',src:'preset'},
+  {word:'mitigate',type:'verb',meaning:'軽減する',choices:['悪化させる','軽減する','調査する','展開する'],day:3,phonetic:'ˈmɪtɪɡeɪt',src:'preset'},
+  {word:'adjacent',type:'adjective',meaning:'隣接する',choices:['遠い','対面する','隣接する','中央の'],day:3,phonetic:'əˈdʒeɪsənt',src:'preset'},
+  {word:'prompt',type:'adjective',meaning:'迅速な',choices:['遅い','迅速な','正確な','慎重な'],day:3,phonetic:'prɒmpt',src:'preset'},
+  {word:'discrepancy',type:'noun',meaning:'不一致、食い違い',choices:['合意','不一致、食い違い','改善','優先事項'],day:4,phonetic:'dɪˈskrepənsi',src:'preset'},
+  {word:'proactive',type:'adjective',meaning:'積極的な、先手を打つ',choices:['受動的な','積極的な、先手を打つ','慎重な','標準的な'],day:4,phonetic:'ˌproʊˈæktɪv',src:'preset'},
+  {word:'consolidate',type:'verb',meaning:'統合する、強化する',choices:['分割する','延長する','統合する、強化する','削減する'],day:4,phonetic:'kənˈsɒlɪdeɪt',src:'preset'},
+  {word:'leverage',type:'verb',meaning:'活用する',choices:['無視する','活用する','制限する','回避する'],day:4,phonetic:'ˈliːvərɪdʒ',src:'preset'},
+  {word:'tentative',type:'adjective',meaning:'暫定的な',choices:['確定的な','暫定的な','緊急の','定期的な'],day:4,phonetic:'ˈtentətɪv',src:'preset'},
+  {word:'procurement',type:'noun',meaning:'調達',choices:['販売','調達','配送','契約'],day:4,phonetic:'prəˈkjʊərmənt',src:'preset'},
+  {word:'adhere',type:'verb',meaning:'従う、守る',choices:['無視する','変更する','従う、守る','破る'],day:4,phonetic:'ədˈhɪər',src:'preset'},
+  {word:'benchmark',type:'noun',meaning:'基準、指標',choices:['基準、指標','欠陥','目的','成果'],day:4,phonetic:'ˈbentʃmɑːrk',src:'preset'},
+  {word:'streamline',type:'verb',meaning:'合理化する',choices:['複雑化する','合理化する','記録する','監査する'],day:4,phonetic:'ˈstriːmlaɪn',src:'preset'},
+  {word:'subsidy',type:'noun',meaning:'補助金',choices:['課税','補助金','融資','利息'],day:4,phonetic:'ˈsʌbsɪdi',src:'preset'},
+  {word:'arbitration',type:'noun',meaning:'仲裁',choices:['裁判','仲裁','交渉','調停'],day:5,phonetic:'ˌɑːrbɪˈtreɪʃən',src:'preset'},
+  {word:'plausible',type:'adjective',meaning:'もっともらしい',choices:['明らかな','不可能な','もっともらしい','曖昧な'],day:5,phonetic:'ˈplɔːzɪbəl',src:'preset'},
+  {word:'liability',type:'noun',meaning:'負債、責任',choices:['資産','利益','負債、責任','報告'],day:5,phonetic:'ˌlaɪəˈbɪlɪti',src:'preset'},
+  {word:'synopsis',type:'noun',meaning:'要約',choices:['詳細','要約','図表','付録'],day:5,phonetic:'sɪˈnɒpsɪs',src:'preset'},
+  {word:'redundant',type:'adjective',meaning:'不要な、余剰の',choices:['必要な','重要な','不要な、余剰の','追加の'],day:5,phonetic:'rɪˈdʌndənt',src:'preset'},
+  {word:'expedite',type:'verb',meaning:'早める、促進する',choices:['遅らせる','早める、促進する','中断する','調整する'],day:5,phonetic:'ˈekspɪdaɪt',src:'preset'},
+  {word:'imminent',type:'adjective',meaning:'差し迫った',choices:['遠い','過去の','差し迫った','定期的な'],day:5,phonetic:'ˈɪmɪnənt',src:'preset'},
+  {word:'concise',type:'adjective',meaning:'簡潔な',choices:['冗長な','簡潔な','詳細な','複雑な'],day:5,phonetic:'kənˈsaɪs',src:'preset'},
+  {word:'pragmatic',type:'adjective',meaning:'実用的な',choices:['理想的な','実用的な','理論的な','感情的な'],day:5,phonetic:'præɡˈmætɪk',src:'preset'},
+  {word:'incumbent',type:'adjective',meaning:'現職の',choices:['前任の','候補者の','現職の','選任された'],day:5,phonetic:'ɪnˈkʌmbənt',src:'preset'}
+];
+
+/* ============================================================
+   LocalStorage
+============================================================ */
+function loadDB(){
+  try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)||'null') || mkDB(); }
+  catch{ return mkDB(); }
+}
+function saveDB(db){ try{localStorage.setItem(STORAGE_KEY,JSON.stringify(db));}catch{} }
+function mkDB(){
+  return { startDate:null, dailyLogs:{}, wordStats:{}, totalPlays:0, aiWords:[] };
+}
+
+/* ── 全単語を返す（プリセット＋AI生成） ── */
+function allWords(db){
+  const aiSet = new Set((db.aiWords||[]).map(w=>w.word));
+  const presets = PRESET_WORDS.filter(w=>!aiSet.has(w.word));
+  return [...presets, ...(db.aiWords||[])];
+}
+
+/* ============================================================
+   日付
+============================================================ */
+function todayStr(){ return new Date().toLocaleDateString('sv'); }
+function dayIndex(db){
+  if(!db.startDate) return 1;
+  const diff = Math.floor((new Date(todayStr())-new Date(db.startDate))/86400000);
+  return diff+1;
+}
+function quizCount(db){
+  const total = allWords(db).length;
+  return Math.min(WORDS_PER_DAY, total);  // 常に10問固定
+}
+function calcStreak(db){
+  let streak=0, d=new Date(todayStr());
+  while(db.dailyLogs[(d.toLocaleDateString('sv'))]){ streak++; d.setDate(d.getDate()-1); }
+  return streak;
+}
+
+/* ============================================================
+   Utility
+============================================================ */
+function shuffle(arr){ const a=[...arr]; for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]; } return a; }
+function $(id){ return document.getElementById(id); }
+function showScreen(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); $(id).classList.add('active'); }
+
+/* ============================================================
+   START SCREEN
+============================================================ */
+function initStart(){
+  const db    = loadDB();
+  const today = todayStr();
+  const d     = dayIndex(db);
+  const cnt   = quizCount(db);
+  const bank  = allWords(db);
+
+  // 今日の情報
+  const todayLog = db.dailyLogs[today];
+  if(todayLog){
+    const rate = Math.min(Math.round(todayLog.correct/todayLog.total*100), 100);
+    $('today-info-box').innerHTML = `<div class="info-done"><span class="info-done-icon">✅</span><div><strong>本日クリア済み</strong><span>${todayLog.plays}回 ／ 最高 ${rate}% 正答率</span></div></div>`;
+  } else {
+    $('today-info-box').innerHTML = `<div class="info-today"><div class="info-day-badge">Day ${d}</div><div class="info-text"><strong>今日の出題数：10問（固定）</strong><span>${bank.length}語の中からシャッフル出題</span></div></div>`;
+  }
+
+  const logs    = Object.values(db.dailyLogs||{});
+  const avgRate = logs.length
+    ? Math.min(Math.round(logs.reduce((s,l)=>s+l.correct/l.total*100,0)/logs.length), 100)+'%'
+    : '—';
+  $('meta-streak').textContent = calcStreak(db);
+  $('meta-plays').textContent  = db.totalPlays||0;
+  $('meta-best').textContent   = avgRate;
+  $('ai-bank-count').textContent = `現在 ${bank.length} 語`;
+
+  showScreen('screen-start');
+}
+
+/* ============================================================
+   AI 単語生成（ストリーミング）
+============================================================ */
+/* APIキー保存・読み込み */
+const API_KEY_STORAGE = 'vocabQuiz_apikey';
+function loadApiKey(){ return localStorage.getItem(API_KEY_STORAGE)||''; }
+function saveApiKey(k){ if(k) localStorage.setItem(API_KEY_STORAGE,k); }
+
+function initApiKeyInput(){
+  const saved = loadApiKey();
+  const inp = $('ai-key-input');
+  if(saved){ inp.value=saved; inp.classList.add('saved'); }
+}
+
+async function onGenerate(){
+  const apiKey = loadApiKey() || $('ai-key-input').value.trim();
+  if(!apiKey || !apiKey.startsWith('sk-')){
+    $('ai-status').className='ai-status err';
+    $('ai-status').textContent='❌ APIキーを入力して「保存」してください';
+    return;
+  }
+
+  const n   = Math.min(Math.max(parseInt($('ai-count').value)||10, 5), 30);
+  const db  = loadDB();
+  const existing = allWords(db).map(w=>w.word);
+
+  // UI
+  $('btn-ai-gen').disabled     = true;
+  $('ai-spinner').style.display= 'inline-block';
+  $('ai-btn-text').textContent = '生成中...';
+  $('ai-status').className     = 'ai-status';
+  $('ai-status').textContent   = '';
+  const preview = $('ai-preview');
+  preview.innerHTML = '';
+  preview.classList.add('visible');
+
+  /* プロンプト */
+  const prompt = `あなたはTOEIC600レベルの英単語クイズ作成の専門家です。
+以下の条件で英単語を${n}語生成してください。
+
+【条件】
+- TOEIC600点レベルのビジネス・日常英語
+- 既存単語と重複しない: ${existing.join(', ')}
+- 必ず正確なJSON配列のみを返す（説明文・コードブロック不要）
+
+【出力形式】（配列のみ、他の文字列は一切含めない）
+[
+  {
+    "word": "英単語",
+    "type": "noun|verb|adjective|adverb",
+    "meaning": "日本語の意味",
+    "choices": ["正解の意味", "誤答1", "誤答2", "誤答3"]
+  }
+]
+
+choicesは必ず「正解の意味」を含む4択にしてください。誤答は意味が近い紛らわしいものにしてください。`;
+
+  let rawText = '';
+  let addedWords = [];
+
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+        'x-api-key': apiKey
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: 3000,
+        messages: [{ role:'user', content: prompt }]
+      })
+    });
+
+    if(!res.ok){
+      let detail = '';
+      try { const j = await res.json(); detail = j.error?.message || JSON.stringify(j); } catch{}
+      const hints = {
+        401: '→ APIキーが無効または間違っています。再確認して保存し直してください。',
+        403: '→ このAPIキーにアクセス権限がありません。',
+        429: '→ レート制限です。少し待ってから再試行してください。',
+        500: '→ Anthropic側のサーバーエラーです。しばらく待って再試行してください。'
+      };
+      throw new Error(`HTTP ${res.status} ${hints[res.status]||''} ${detail}`);
+    }
+
+    const json = await res.json();
+    rawText = (json.content||[]).map(b=>b.text||'').join('');
+
+    // プレビュー表示
+    const found = rawText.match(/"word"\s*:\s*"([^"]+)"/g);
+    if(found){
+      preview.innerHTML = found.map(m=>{
+        const w = m.match(/"([^"]+)"$/)[1];
+        return `<span class="preview-word">${w}</span>`;
+      }).join(' ');
+    }
+
+    // JSON をパース
+    const match = rawText.match(/\[[\s\S]*\]/);
+    if(!match) throw new Error('JSON形式で取得できませんでした');
+    const parsed = JSON.parse(match[0]);
+
+    const existingSet = new Set(existing);
+    let nextDay = Math.ceil((allWords(db).length + 1) / WORDS_PER_DAY);
+
+    parsed.forEach((item, i) => {
+      if(!item.word || !item.meaning || !Array.isArray(item.choices) || item.choices.length < 4) return;
+      if(existingSet.has(item.word)) return;
+      existingSet.add(item.word);
+
+      const dayNum = nextDay + Math.floor(i / WORDS_PER_DAY);
+      const newWord = {
+        word:    item.word,
+        type:    item.type || 'word',
+        meaning: item.meaning,
+        choices: item.choices.slice(0,4),
+        day:     dayNum,
+        src:     'ai'
+      };
+      db.aiWords.push(newWord);
+      addedWords.push(item.word);
+    });
+
+    saveDB(db);
+
+    preview.innerHTML = addedWords.map(w=>`<span class="preview-word">${w}</span>`).join(' ');
+    $('ai-status').className = 'ai-status ok';
+    $('ai-status').textContent = `✅ ${addedWords.length}語を追加しました！（合計 ${allWords(db).length} 語）`;
+    $('ai-bank-count').textContent = `現在 ${allWords(db).length} 語`;
+
+    // 今日の情報ボックスも更新
+    initStart();
+
+  } catch(err){
+    $('ai-status').className = 'ai-status err';
+    $('ai-status').textContent = `❌ エラー: ${err.message}`;
+    preview.classList.remove('visible');
+  } finally {
+    $('btn-ai-gen').disabled     = false;
+    $('ai-spinner').style.display= 'none';
+    $('ai-btn-text').textContent = '語を AI 生成する ✨';
+  }
+}
+
+/* ============================================================
+   SPEECH（Web Speech API）
+============================================================ */
+function speakWord(word){
+  if(!window.speechSynthesis) return;
+  // 再生中なら停止
+  window.speechSynthesis.cancel();
+
+  const btn = $('btn-speak');
+  btn.classList.add('speaking');
+
+  const utt = new SpeechSynthesisUtterance(word);
+  utt.lang  = 'en-US';
+  utt.rate  = 0.85;   // やや遅めで聞き取りやすく
+  utt.pitch = 1;
+
+  // 英語音声を優先選択
+  const voices = window.speechSynthesis.getVoices();
+  const enVoice = voices.find(v=>v.lang.startsWith('en-') && v.localService)
+                || voices.find(v=>v.lang.startsWith('en-'));
+  if(enVoice) utt.voice = enVoice;
+
+  utt.onend = utt.onerror = () => btn.classList.remove('speaking');
+  window.speechSynthesis.speak(utt);
+}
+
+// ページロード時に音声リストを初期化（一部ブラウザで必要）
+if(window.speechSynthesis){
+  window.speechSynthesis.getVoices();
+  window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+}
+
+/* ============================================================
+   QUIZ
+============================================================ */
+let quizMode = 'en-ja';  // 'en-ja' | 'ja-en'
+let state = { questions:[], current:0, score:0, totalTime:0, answers:[], timerInterval:null, timeLeft:TIME_LIMIT, answered:false, quizCount:0, mode:'en-ja' };
+
+/* ── 苦手重み付きサンプリング ──
+   間違えた回数が多いほど出題確率が上がる。
+   weight = 1 + (wrongCount * 2) — 一度も解いてない語はweight=1、
+   間違えるたびに+2で最大weight=11（5回間違い）
+*/
+/* 忘却曲線インターバル判定 */
+function isWordDue(ws, today){
+  if(!ws || !ws.nextDate) return true;   // 未出題 → 出題対象
+  return ws.nextDate <= today;            // nextDate が今日以前 → 出題対象
+}
+
+function weightedSample(bank, db, n){
+  const stats = db.wordStats || {};
+  const today = todayStr();
+
+  // 出題対象（due）と待機中（pending）に分ける
+  const due     = bank.filter(w => isWordDue(stats[w.word], today));
+  const pending = bank.filter(w => !isWordDue(stats[w.word], today));
+
+  // due リストに重み付け
+  const weighted = [];
+  due.forEach(w => {
+    const s = stats[w.word];
+    const wrong  = s ? (s.attempts - s.correct) : 0;
+    const weight = 1 + Math.min(wrong * 2, 10);
+    for(let i = 0; i < weight; i++) weighted.push(w);
+  });
+
+  const shuffled = shuffle(weighted);
+  const seen = new Set();
+  const result = [];
+  for(const w of shuffled){
+    if(!seen.has(w.word)){ seen.add(w.word); result.push(w); }
+    if(result.length >= n) break;
+  }
+
+  // due が n 語に満たない場合は pending から補充（インターバル中でも出題）
+  if(result.length < n){
+    const seenSet = new Set(result.map(w=>w.word));
+    // pending は nextDate が近い順（復習が近い単語を優先）
+    const sortedPending = [...pending].sort((a,b)=>{
+      const da = stats[a.word]?.nextDate||'9999';
+      const db2= stats[b.word]?.nextDate||'9999';
+      return da.localeCompare(db2);
+    });
+    for(const w of sortedPending){
+      if(!seenSet.has(w.word)){ result.push(w); seenSet.add(w.word); }
+      if(result.length >= n) break;
+    }
+  }
+
+  return shuffle(result);  // 最後にもう一度シャッフルして順番をランダムに
+}
+
+function startQuiz(){
+  const db = loadDB();
+  if(!db.startDate){ db.startDate = todayStr(); saveDB(db); }
+
+  const bank = allWords(db);
+  const cnt  = quizCount(db);
+  if(bank.length === 0){ alert('単語がありません。AI生成で単語を追加してください。'); return; }
+
+  const questions = weightedSample(bank, db, cnt);
+  state = { questions, quizCount:cnt, current:0, score:0, totalTime:0, answers:[], timerInterval:null, timeLeft:TIME_LIMIT, answered:false, mode: quizMode };
+  showScreen('screen-quiz');
+  syncModeButtons();
+  renderQuestion();
+}
+
+function syncModeButtons(){
+  $('mode-en-ja').classList.toggle('active', quizMode==='en-ja');
+  $('mode-ja-en').classList.toggle('active', quizMode==='ja-en');
+  const badge = $('hud-mode-badge');
+  if(badge) badge.textContent = quizMode==='en-ja' ? '🇺🇸 英→日' : '🇯🇵 日→英';
+}
+
+function renderQuestion(){
+  const q    = state.questions[state.current];
+  const mode = state.mode;  // 'en-ja' | 'ja-en'
+  state.answered = false; state.timeLeft = TIME_LIMIT;
+
+  $('progress-fill').style.width = (state.current/state.quizCount*100)+'%';
+  $('q-counter').textContent = `${state.current+1} / ${state.quizCount}`;
+  $('hud-score').textContent = state.score+'pt';
+
+  // 苦手バッジ表示
+  const db    = loadDB();
+  const stats = db.wordStats || {};
+  const ws    = stats[q.word];
+  const wrong = ws ? ws.attempts - ws.correct : 0;
+  const badge = $('word-day-badge');
+  if(wrong >= 2){
+    badge.textContent = `⚠️ 苦手 (${wrong}回ミス)`;
+    badge.className   = 'word-day-badge weak';
+  } else {
+    badge.textContent = q.src==='ai' ? '✨ AI生成' : `Day ${q.day}`;
+    badge.className   = q.src==='ai' ? 'word-day-badge ai-src' : 'word-day-badge';
+  }
+
+  const card = document.querySelector('.question-card');
+
+  if(mode === 'en-ja'){
+    // ── 英語 → 日本語 ──
+    card.classList.remove('ja-mode');
+    $('en-word').textContent   = q.word;
+    $('word-pos').textContent  = q.type ? `[${q.type}]` : '';
+    $('word-phonetic').textContent = q.phonetic ? `/${q.phonetic}/` : '';
+    $('btn-speak').onclick = () => speakWord(q.word);
+
+    const grid = $('choices-grid');
+    grid.innerHTML = '';
+    shuffle(q.choices).forEach(ch=>{
+      const btn = document.createElement('button');
+      btn.className='choice-btn'; btn.textContent=ch;
+      btn.addEventListener('click',()=>selectAnswer(ch, q, q.meaning));
+      grid.appendChild(btn);
+    });
+  } else {
+    // ── 日本語 → 英語 ──
+    card.classList.add('ja-mode');
+    $('en-word').textContent   = q.meaning;   // 問題文：日本語
+    $('word-pos').textContent  = q.type ? `[${q.type}]` : '';
+    $('word-phonetic').textContent = '';
+    $('btn-speak').onclick = null;
+
+    // 選択肢：英単語4択（正解＋同バンクから3語）
+    const bank       = allWords(db);
+    const otherWords = shuffle(bank.filter(w=>w.word!==q.word)).slice(0,3).map(w=>w.word);
+    const enChoices  = shuffle([q.word, ...otherWords]);
+
+    const grid = $('choices-grid');
+    grid.innerHTML = '';
+    enChoices.forEach(ch=>{
+      const btn = document.createElement('button');
+      btn.className='choice-btn'; btn.textContent=ch;
+      btn.addEventListener('click',()=>selectAnswer(ch, q, q.word));
+      grid.appendChild(btn);
+    });
+  }
+
+  clearInterval(state.timerInterval);
+  setTimer(TIME_LIMIT);
+  state.timerInterval = setInterval(()=>{
+    state.timeLeft--;
+    setTimer(state.timeLeft);
+    if(state.timeLeft<=0){ clearInterval(state.timerInterval); if(!state.answered) timeUp(q); }
+  },1000);
+}
+
+function setTimer(t){
+  $('timer-num').textContent = t;
+  t<=5 ? $('hud-timer').classList.add('urgent') : $('hud-timer').classList.remove('urgent');
+}
+
+function selectAnswer(chosen, q, correctKey){
+  // correctKey: en-jaモードならq.meaning、ja-enモードならq.word
+  if(state.answered) return;
+  state.answered=true; clearInterval(state.timerInterval);
+  const taken = TIME_LIMIT - state.timeLeft;
+  state.totalTime += taken;
+  const ok  = chosen===correctKey;
+  const pts = ok ? BASE_PTS + Math.round(BONUS_MAX*state.timeLeft/TIME_LIMIT) : 0;
+  state.score += pts;
+  state.answers.push({word:q.word, mode:state.mode, correct:ok, timeTaken:taken, yourAnswer:chosen, rightAnswer:correctKey});
+  document.querySelectorAll('.choice-btn').forEach(btn=>{
+    btn.disabled=true;
+    if(btn.textContent===correctKey) btn.classList.add(ok&&btn.textContent===chosen?'correct':'reveal-correct');
+    if(!ok&&btn.textContent===chosen) btn.classList.add('wrong');
+  });
+  $('hud-score').textContent = state.score+'pt';
+
+  // 例文パネルを表示してからAI生成 → 2秒後に次の問題へ
+  showExamplePanel(q);
+  setTimeout(()=>{
+    hideExamplePanel();
+    state.current++;
+    state.current>=state.quizCount?showResult():renderQuestion();
+  }, 3500);
+}
+
+function timeUp(q){
+  const correctKey = state.mode==='en-ja' ? q.meaning : q.word;
+  state.answered=true; state.totalTime+=TIME_LIMIT;
+  state.answers.push({word:q.word, mode:state.mode, correct:false, timeTaken:TIME_LIMIT, yourAnswer:'(時間切れ)', rightAnswer:correctKey});
+  document.querySelectorAll('.choice-btn').forEach(btn=>{ btn.disabled=true; if(btn.textContent===correctKey) btn.classList.add('reveal-correct'); });
+  showExamplePanel(q);
+  setTimeout(()=>{
+    hideExamplePanel();
+    state.current++;
+    state.current>=state.quizCount?showResult():renderQuestion();
+  }, 3500);
+}
+
+/* ============================================================
+   RESULT
+============================================================ */
+function showResult(){
+  const correct  = state.answers.filter(a=>a.correct).length;
+  const total    = state.quizCount;
+  const avgTime  = (state.totalTime/total).toFixed(1);
+  const ratePct  = Math.round(correct/total*100);
+  const grades   = [[100,'🏆','完璧！パーフェクト！'],[80,'🎉','お見事！'],[60,'👍','よくできました！'],[40,'📚','もう少し頑張ろう！'],[0,'💪','復習が必要です！']];
+  const [,emoji,title] = grades.find(([th])=>ratePct>=th);
+
+  $('result-emoji').textContent = emoji; $('result-title').textContent = title;
+  $('ring-pct').textContent     = ratePct+'%';
+  $('r-correct').textContent    = correct; $('r-wrong').textContent = total-correct;
+  $('r-avg-time').textContent   = avgTime+'s'; $('r-score').textContent = state.score;
+  drawRing('ring-canvas', ratePct);
+
+  $('review-list').innerHTML = state.answers.map(a=>`
+    <div class="review-item">
+      <span class="rdot ${a.correct?'ok':'ng'}"></span>
+      <button class="review-speak-btn" onclick="speakWord('${a.word}')" aria-label="発音" title="発音">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+      </button>
+      <span class="rword">${a.word}</span>
+      <span class="rans">${a.correct
+        ?`<span class="rans-ok">${a.rightAnswer}</span>`
+        :`<span class="rans-ng">${a.yourAnswer}</span><span class="rans-arrow">→</span><span class="rans-ok">${a.rightAnswer}</span>`}</span>
+      <span class="rtime">${a.timeTaken}s</span>
+    </div>`).join('');
+
+  // 保存
+  const db    = loadDB();
+  const today = todayStr();
+  const prev  = db.dailyLogs[today]||{correct:0,total:0,score:0,plays:0};
+  const thisRate = Math.min(Math.round(correct/total*100), 100);
+  const prevRate = prev.total ? Math.min(Math.round(prev.correct/prev.total*100), 100) : 0;
+  db.dailyLogs[today] = {
+    correct: prevRate >= thisRate ? prev.correct : correct,
+    total:   prevRate >= thisRate ? prev.total   : total,
+    score:   Math.max(prev.score, state.score),
+    plays:   prev.plays + 1
+  };
+  db.totalPlays = (db.totalPlays||0)+1;
+  if(!db.wordStats) db.wordStats={};
+  state.answers.forEach(a=>{
+    if(!db.wordStats[a.word]) db.wordStats[a.word]={correct:0,attempts:0};
+    db.wordStats[a.word].attempts++;
+    if(a.correct) db.wordStats[a.word].correct++;
+    // 忘却曲線：正答率でnextDateを決定
+    const ws   = db.wordStats[a.word];
+    const rate = ws.attempts ? Math.round(ws.correct/ws.attempts*100) : 0;
+    const days = rate<=30 ? 1 : rate<=70 ? 3 : rate<=90 ? 7 : 14;
+    const next = new Date(todayStr());
+    next.setDate(next.getDate()+days);
+    ws.nextDate = next.toLocaleDateString('sv');
+  });
+  saveDB(db);
+  showScreen('screen-result');
+}
+
+
+/* ============================================================
+   EXAMPLE SENTENCES
+============================================================ */
+// プリセット例文（主要50語）
+const EXAMPLE_SENTENCES = {
+  negotiate:     {en:"The company negotiated a new contract with the supplier.",       ja:"会社はサプライヤーと新しい契約を交渉した。"},
+  significant:   {en:"There has been a significant improvement in sales this quarter.",ja:"今四半期の売上に著しい改善が見られた。"},
+  implement:     {en:"We need to implement the new system by the end of this month.",  ja:"今月末までに新システムを導入する必要がある。"},
+  approximately: {en:"The project will take approximately three months to complete.",   ja:"このプロジェクトは完成までおよそ3ヶ月かかる。"},
+  colleague:     {en:"I asked my colleague to review the report before submission.",   ja:"提出前に同僚にレポートを確認してもらった。"},
+  efficient:     {en:"This new process is much more efficient than the previous one.", ja:"この新しいプロセスは以前のものよりずっと効率的だ。"},
+  deadline:      {en:"We must submit the proposal before the deadline on Friday.",     ja:"金曜日の締め切りまでに提案書を提出しなければならない。"},
+  persuade:      {en:"She managed to persuade the board to approve the new budget.",   ja:"彼女はなんとか取締役会に新しい予算を承認させた。"},
+  revenue:       {en:"The company's annual revenue increased by 15% last year.",       ja:"会社の年間収益は昨年15%増加した。"},
+  acknowledge:   {en:"The manager acknowledged the team's hard work at the meeting.", ja:"マネージャーは会議でチームの努力を認めた。"},
+  allocate:      {en:"The budget was allocated evenly across all departments.",         ja:"予算は全部門に均等に割り当てられた。"},
+  subsequent:    {en:"Subsequent meetings will be held every Monday morning.",         ja:"その後の会議は毎週月曜日の朝に行われる。"},
+  comprehensive: {en:"We conducted a comprehensive review of the entire process.",     ja:"私たちはプロセス全体の包括的な見直しを行った。"},
+  facilitate:    {en:"The new software will facilitate communication between teams.",  ja:"新しいソフトウェアはチーム間のコミュニケーションを促進する。"},
+  mandatory:     {en:"Attendance at the safety training is mandatory for all staff.",  ja:"安全研修への参加は全スタッフに義務付けられている。"},
+  surplus:       {en:"The government reported a budget surplus for the third year.",   ja:"政府は3年連続の予算黒字を報告した。"},
+  verify:        {en:"Please verify your email address to complete the registration.", ja:"登録を完了するためにメールアドレスを確認してください。"},
+  fluctuate:     {en:"The stock price tends to fluctuate during uncertain times.",     ja:"株価は不安定な時期に変動しやすい。"},
+  initiative:    {en:"The company launched a new initiative to reduce carbon emissions.",ja:"会社は炭素排出量削減のための新しい取り組みを開始した。"},
+  delegate:      {en:"Good managers know how to delegate tasks to their team.",        ja:"優れたマネージャーはチームに業務を委任する方法を知っている。"},
+  considerably:  {en:"The new policy has considerably reduced processing time.",       ja:"新しい方針により処理時間がかなり短縮された。"},
+  obsolete:      {en:"This technology has become obsolete and needs to be replaced.",  ja:"この技術は時代遅れになり、交換が必要だ。"},
+  comply:        {en:"All companies must comply with the new environmental regulations.",ja:"全企業は新しい環境規制に従わなければならない。"},
+  potential:     {en:"She has the potential to become an excellent leader.",            ja:"彼女は優れたリーダーになる可能性を持っている。"},
+  mutual:        {en:"They reached a mutual agreement after hours of discussion.",     ja:"彼らは何時間もの議論の末、相互合意に達した。"},
+  sustainable:   {en:"The company is committed to sustainable business practices.",    ja:"会社は持続可能なビジネス慣行に取り組んでいる。"},
+  assessment:    {en:"The performance assessment will be conducted next month.",       ja:"業績評価は来月実施される予定だ。"},
+  mitigate:      {en:"We need to take steps to mitigate the financial risks.",         ja:"財務リスクを軽減するための措置を講じる必要がある。"},
+  adjacent:      {en:"The conference room is adjacent to the main office.",            ja:"会議室はメインオフィスの隣にある。"},
+  prompt:        {en:"Please send a prompt reply to the client's inquiry.",            ja:"クライアントの問い合わせに迅速な返答をしてください。"},
+  discrepancy:   {en:"There is a discrepancy between the report and the actual data.", ja:"レポートと実際のデータの間に不一致がある。"},
+  proactive:     {en:"We need to take a proactive approach to customer service.",      ja:"顧客サービスに対して積極的なアプローチが必要だ。"},
+  consolidate:   {en:"The two departments will consolidate into one next quarter.",    ja:"2つの部門は来四半期に1つに統合される。"},
+  leverage:      {en:"We can leverage our data to improve customer experience.",       ja:"データを活用して顧客体験を改善できる。"},
+  tentative:     {en:"We have a tentative schedule, but it may change.",               ja:"暫定的なスケジュールがあるが、変更になる可能性がある。"},
+  procurement:   {en:"The procurement process requires three quotes from suppliers.",  ja:"調達プロセスではサプライヤーから3つの見積もりが必要だ。"},
+  adhere:        {en:"All employees must adhere to the company's code of conduct.",    ja:"全従業員は会社の行動規範に従わなければならない。"},
+  benchmark:     {en:"This project will serve as a benchmark for future initiatives.", ja:"このプロジェクトは将来の取り組みの基準となる。"},
+  streamline:    {en:"We plan to streamline our operations to cut costs.",             ja:"コスト削減のために業務を合理化する計画だ。"},
+  subsidy:       {en:"The government offered a subsidy to support renewable energy.",  ja:"政府は再生可能エネルギーを支援するための補助金を提供した。"},
+  arbitration:   {en:"The dispute was resolved through arbitration rather than court.",ja:"紛争は裁判ではなく仲裁によって解決された。"},
+  plausible:     {en:"That is a plausible explanation for the data anomaly.",          ja:"それはデータの異常に対するもっともらしい説明だ。"},
+  liability:     {en:"The company accepted liability for the defective products.",     ja:"会社は欠陥製品に対する責任を認めた。"},
+  synopsis:      {en:"Please prepare a brief synopsis of the project for the meeting.",ja:"会議のためにプロジェクトの簡単な要約を準備してください。"},
+  redundant:     {en:"Several staff positions became redundant after the merger.",     ja:"合併後、いくつかのスタッフのポジションが不要になった。"},
+  expedite:      {en:"Could you expedite the delivery of this order?",                 ja:"この注文の配送を早めていただけますか？"},
+  imminent:      {en:"The imminent deadline prompted the team to work overtime.",      ja:"差し迫った締め切りによりチームは残業を余儀なくされた。"},
+  concise:       {en:"Please write a concise summary of the key findings.",            ja:"主な調査結果の簡潔な要約を書いてください。"},
+  pragmatic:     {en:"We need a pragmatic solution that we can implement quickly.",    ja:"迅速に実施できる実用的な解決策が必要だ。"},
+  incumbent:     {en:"The incumbent CEO announced his retirement at the shareholder meeting.",ja:"現職のCEOは株主総会で退任を発表した。"},
+};
+
+function showExamplePanel(q){
+  const panel = $('example-panel');
+  panel.style.display = 'block';
+  $('example-headword').textContent  = q.word;
+  $('example-sentence').textContent  = '';
+  $('example-translation').textContent = '';
+
+  const preset = EXAMPLE_SENTENCES[q.word];
+  if(preset){
+    $('example-sentence').textContent    = preset.en;
+    $('example-translation').textContent = preset.ja;
+    $('example-loading').style.display   = 'none';
+  } else {
+    // AIが生成した単語 → APIで例文生成
+    const apiKey = loadApiKey();
+    if(!apiKey){ 
+      $('example-sentence').textContent = '(例文データなし)';
+      return;
+    }
+    $('example-loading').style.display = 'flex';
+    fetchExample(q.word, q.meaning, apiKey);
+  }
+}
+
+function hideExamplePanel(){
+  $('example-panel').style.display = 'none';
+}
+
+async function fetchExample(word, meaning, apiKey){
+  try{
+    const res = await fetch(API_URL,{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true',
+        'x-api-key': apiKey
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: 200,
+        messages:[{role:'user',content:
+          `Create one natural English example sentence using the word "${word}" (meaning: ${meaning}).
+Return ONLY a JSON object, no other text:
+{"en":"English sentence here","ja":"日本語訳をここに"}`
+        }]
+      })
+    });
+    if(!res.ok) throw new Error();
+    const data = await res.json();
+    const text = (data.content||[]).map(b=>b.text||'').join('');
+    const match = text.match(/\{[\s\S]*\}/);
+    if(!match) throw new Error();
+    const obj = JSON.parse(match[0]);
+    $('example-sentence').textContent    = obj.en || '';
+    $('example-translation').textContent = obj.ja || '';
+  } catch{
+    $('example-sentence').textContent = '(例文を取得できませんでした)';
+  } finally {
+    $('example-loading').style.display = 'none';
+  }
+}
+
+function drawRing(id, pct){
+  const cv=$(id), ctx=cv.getContext('2d'), cx=70, cy=70, r=54;
+  const st=-Math.PI/2, en=st+2*Math.PI*pct/100;
+  ctx.clearRect(0,0,140,140);
+  ctx.beginPath(); ctx.arc(cx,cy,r,0,2*Math.PI); ctx.strokeStyle='#e8e7f4'; ctx.lineWidth=12; ctx.stroke();
+  const col=pct>=80?'#0d9e75':pct>=60?'#5548d9':pct>=40?'#c87800':'#d84040';
+  ctx.beginPath(); ctx.arc(cx,cy,r,st,en); ctx.strokeStyle=col; ctx.lineWidth=12; ctx.lineCap='round'; ctx.stroke();
+}
+
+/* ============================================================
+   GRAPH
+============================================================ */
+let currentTab='accuracy';
+
+function showGraph(){
+  const db   = loadDB();
+  const logs = db.dailyLogs||{};
+  const keys = Object.keys(logs).sort();
+  const bank = allWords(db);
+
+  const allC = Object.values(logs).reduce((s,l)=>s+l.correct,0);
+  const allT = Object.values(logs).reduce((s,l)=>s+l.total,0);
+
+  $('graph-summary').innerHTML = `
+    <div class="gsm-chip"><span>${db.totalPlays||0}</span><small>総プレイ</small></div>
+    <div class="gsm-chip accent"><span>${allT?Math.round(allC/allT*100):0}%</span><small>総合正答率</small></div>
+    <div class="gsm-chip"><span>${Object.keys(db.wordStats||{}).length}</span><small>学習済み単語</small></div>
+    <div class="gsm-chip"><span>${calcStreak(db)}日</span><small>連続学習</small></div>`;
+
+  renderGraphTab(db, keys, currentTab);
+  renderWordMastery(db);
+  renderWordList(bank);
+  showScreen('screen-graph');
+}
+
+function renderGraphTab(db, keys, tab){
+  const logs   = db.dailyLogs||{};
+  const canvas = $('graph-canvas');
+  const ctx    = canvas.getContext('2d');
+  const W      = canvas.offsetWidth||440;
+  canvas.width = W;
+  const labels = keys.map(k=>k.slice(5));
+  let values, color, label, unit;
+  if(tab==='accuracy'){ values=keys.map(k=>Math.min(Math.round(logs[k].correct/logs[k].total*100),100)); color='#5548d9'; label='正答率'; unit='%'; }
+  else if(tab==='score'){ values=keys.map(k=>logs[k].score); color='#0d9e75'; label='スコア'; unit='pt'; }
+  else { values=keys.map(k=>logs[k].total); color='#c87800'; label='出題数'; unit='問'; }
+  drawBarLine(ctx, W, 220, labels, values, color, unit);
+  $('graph-legend').innerHTML = `<span class="legend-dot" style="background:${color}"></span>${label}`;
+}
+
+function drawBarLine(ctx, W, H, labels, values, color, unit){
+  ctx.clearRect(0,0,W,H);
+  if(!labels.length){
+    ctx.fillStyle='#aaa'; ctx.font='14px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('まだデータがありません',W/2,H/2); return;
+  }
+  const pad={t:20,r:20,b:40,l:50}, cW=W-pad.l-pad.r, cH=H-pad.t-pad.b;
+  const maxV=Math.max(...values,1), n=labels.length;
+  const bW=Math.min(cW/n*0.5,32);
+  const xP=i=>pad.l+(i+0.5)*(cW/n);
+  const yP=v=>pad.t+cH-(v/maxV*cH);
+
+  ctx.font='11px sans-serif'; ctx.textAlign='right';
+  for(let i=0;i<=5;i++){
+    const v=Math.round(maxV/5*i), y=yP(v);
+    ctx.strokeStyle='#e8e7f4'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(pad.l,y); ctx.lineTo(pad.l+cW,y); ctx.stroke();
+    ctx.fillStyle='#999'; ctx.fillText(v+unit,pad.l-6,y+4);
+  }
+  labels.forEach((_,i)=>{
+    ctx.fillStyle=color+'33';
+    const x=xP(i), y=yP(values[i]);
+    ctx.beginPath(); ctx.roundRect(x-bW/2,y,bW,cH-(y-pad.t),4); ctx.fill();
+    ctx.fillStyle='#999'; ctx.font='11px sans-serif'; ctx.textAlign='center';
+    ctx.fillText(labels[i],x,H-8);
+  });
+  ctx.beginPath(); ctx.strokeStyle=color; ctx.lineWidth=2.5; ctx.lineJoin='round';
+  labels.forEach((_,i)=>i===0?ctx.moveTo(xP(i),yP(values[i])):ctx.lineTo(xP(i),yP(values[i])));
+  ctx.stroke();
+  labels.forEach((_,i)=>{
+    const x=xP(i),y=yP(values[i]);
+    ctx.beginPath(); ctx.arc(x,y,5,0,Math.PI*2); ctx.fillStyle='#fff'; ctx.fill();
+    ctx.strokeStyle=color; ctx.lineWidth=2.5; ctx.stroke();
+    ctx.fillStyle=color; ctx.font='11px sans-serif'; ctx.textAlign='center';
+    ctx.fillText(values[i]+unit,x,y-10);
+  });
+}
+
+function renderWordMastery(db){
+  const stats=db.wordStats||{};
+  const wrap=$('word-mastery');
+  if(!Object.keys(stats).length){ wrap.innerHTML='<p class="no-data">まだデータがありません</p>'; return; }
+  const sorted=Object.entries(stats).map(([w,s])=>({word:w,rate:Math.round(s.correct/s.attempts*100),attempts:s.attempts})).sort((a,b)=>a.rate-b.rate);
+  wrap.innerHTML=sorted.map(s=>{
+    const cls=s.rate>=80?'good':s.rate>=50?'mid':'poor';
+    return `<div class="mastery-row"><span class="mastery-word">${s.word}</span><div class="mastery-bar-wrap"><div class="mastery-bar ${cls}" style="width:${s.rate}%"></div></div><span class="mastery-rate ${cls}">${s.rate}%</span><span class="mastery-tries">${s.attempts}回</span></div>`;
+  }).join('');
+}
+
+function renderWordList(bank){
+  const wrap=$('word-list');
+  if(!bank.length){ wrap.innerHTML='<p class="no-data">登録単語なし</p>'; return; }
+  const sorted=[...bank].sort((a,b)=>a.word.localeCompare(b.word));
+  wrap.innerHTML=sorted.map(w=>`
+    <div class="word-list-item">
+      <span class="wl-badge">${w.src==='ai'?'✨AI':'Day'+w.day}</span>
+      <span class="wl-word">${w.word}</span>
+      <span class="wl-meaning">${w.meaning}</span>
+      <span class="wl-src">[${w.type}]</span>
+    </div>`).join('');
+}
+
+/* ============================================================
+   イベント
+============================================================ */
+$('btn-ai-gen').addEventListener('click',  onGenerate);
+$('btn-key-save').addEventListener('click', ()=>{
+  const k = $('ai-key-input').value.trim();
+  if(!k || !k.startsWith('sk-')){
+    $('ai-status').className='ai-status err';
+    $('ai-status').textContent='❌ 正しいAPIキー（sk- で始まる）を入力してください';
+    return;
+  }
+  saveApiKey(k);
+  $('ai-key-input').classList.add('saved');
+  $('ai-status').className='ai-status ok';
+  $('ai-status').textContent='✅ APIキーを保存しました';
+});
+$('btn-start').addEventListener('click',   startQuiz);
+$('mode-en-ja').addEventListener('click', ()=>{ quizMode='en-ja'; syncModeButtons(); });
+$('mode-ja-en').addEventListener('click', ()=>{ quizMode='ja-en'; syncModeButtons(); });
+$('btn-graph').addEventListener('click',   showGraph);
+$('btn-retry').addEventListener('click',   startQuiz);
+$('btn-graph2').addEventListener('click',  showGraph);
+$('btn-home').addEventListener('click',    initStart);
+$('btn-graph-back').addEventListener('click', initStart);
+
+document.querySelectorAll('.g-tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    document.querySelectorAll('.g-tab').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active'); currentTab=tab.dataset.tab;
+    const db=loadDB();
+    renderGraphTab(db,Object.keys(db.dailyLogs||{}).sort(),currentTab);
+  });
+});
+window.addEventListener('resize',()=>{ if($('screen-graph').classList.contains('active')) showGraph(); });
+
+/* ============================================================
+   Boot
+============================================================ */
+initApiKeyInput();
+initStart();
+</script>
+
+<script>
+// Service Worker 登録（PWA化）
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('SW registered:', reg.scope))
+      .catch(err => console.log('SW error:', err));
+  });
+}
+</script>
+</body>
+</html>
