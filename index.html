@@ -360,6 +360,51 @@ body::before{
 .wl-src{font-size:10px;color:var(--ink-light);white-space:nowrap}
 
 
+/* ── 単語数バー ── */
+.word-count-bar{
+  display:flex;align-items:center;gap:8px;
+  background:var(--surface-2);border-radius:var(--r);padding:12px 16px;
+}
+.word-count-label{font-size:13px;color:var(--ink-mid);font-weight:500}
+.word-count-num{
+  font-size:1.4rem;font-weight:700;color:var(--accent);margin-left:auto;
+}
+.btn-admin-lock{
+  background:none;border:none;font-size:1.1rem;
+  cursor:pointer;padding:4px 6px;border-radius:8px;
+  color:var(--ink-light);transition:all var(--ease);margin-left:4px;
+}
+.btn-admin-lock:hover{background:var(--accent-lt);color:var(--accent)}
+
+/* ── 管理者ログインパネル ── */
+.admin-login-panel{
+  background:var(--surface);border:1.5px solid var(--accent-lt);
+  border-radius:var(--r);padding:16px;
+  display:flex;flex-direction:column;gap:10px;
+  animation:fadeUp .2s ease both;
+}
+.admin-login-title{font-size:14px;font-weight:600;color:var(--ink);text-align:center}
+.admin-pw-row{display:flex;gap:8px}
+.admin-pw-input{
+  flex:1;border:1.5px solid #d0cfe8;border-radius:var(--r);
+  padding:10px 12px;font-size:14px;font-family:var(--font);
+  color:var(--ink);background:var(--surface);min-width:0;
+}
+.admin-pw-input:focus{outline:none;border-color:var(--accent)}
+.btn-admin-enter{
+  background:var(--accent);color:#fff;border:none;border-radius:var(--r);
+  padding:10px 16px;font-family:var(--font);font-size:14px;font-weight:600;
+  cursor:pointer;white-space:nowrap;transition:background var(--ease);
+}
+.btn-admin-enter:hover{background:var(--accent-dk)}
+.admin-pw-error{font-size:12px;color:var(--danger);text-align:center;font-weight:500}
+.btn-admin-close{
+  margin-left:auto;background:none;border:none;
+  font-size:14px;color:var(--ink-light);cursor:pointer;
+  padding:2px 8px;border-radius:6px;transition:all var(--ease);
+}
+.btn-admin-close:hover{background:var(--danger-lt);color:var(--danger)}
+
 /* ── モード切替トグル ── */
 .mode-toggle-wrap{
   display:flex;align-items:center;justify-content:center;
@@ -435,19 +480,38 @@ body::before{
     <button id="btn-start" class="btn-primary">今日のクイズへ →</button>
     <button id="btn-graph" class="btn-ghost">📊 進捗グラフを見る</button>
 
-    <!-- AI 生成パネル -->
-    <div class="ai-panel">
+    <!-- 単語数バー（常時表示） -->
+    <div class="word-count-bar">
+      <span>📚</span>
+      <span class="word-count-label">登録単語数</span>
+      <span id="word-count-num" class="word-count-num">—</span>
+      <span class="word-count-label">語</span>
+      <button id="btn-admin-open" class="btn-admin-lock" title="管理者ログイン">🔒</button>
+    </div>
+
+    <!-- 管理者パスワード入力（初期非表示） -->
+    <div id="admin-login-panel" class="admin-login-panel" style="display:none">
+      <p class="admin-login-title">🔐 管理者ログイン</p>
+      <div class="admin-pw-row">
+        <input id="admin-pw-input" class="admin-pw-input" type="password" placeholder="パスワードを入力" autocomplete="off">
+        <button id="btn-admin-login" class="btn-admin-enter">確認</button>
+      </div>
+      <div id="admin-pw-error" class="admin-pw-error" style="display:none">❌ パスワードが違います</div>
+    </div>
+
+    <!-- AI生成パネル（管理者ログイン後のみ表示） -->
+    <div id="ai-panel" class="ai-panel" style="display:none">
       <div class="ai-panel-header">
         <span class="ai-spark">✨</span>
         <span>AI 単語自動生成</span>
-
+        <button id="btn-admin-close" class="btn-admin-close" title="閉じる">✕</button>
       </div>
-      <p class="ai-panel-desc">Anthropic API キーを入力すると、Claude が TOEIC600レベルの単語を自動生成・追加します。キーはこのブラウザにのみ保存されます。</p>
+      <p class="ai-panel-desc">Anthropic API キーを入力すると、Claude が単語を自動生成・追加します。</p>
       <div class="ai-key-row">
         <input id="ai-key-input" class="ai-key-input" type="password" placeholder="sk-ant-api03-..." autocomplete="off" spellcheck="false">
         <button id="btn-key-save" class="btn-key-save">保存</button>
       </div>
-      <p class="ai-key-note">APIキーは <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a> で取得できます。入力したキーはブラウザの localStorage にのみ保存され、Anthropic API への通信以外には使用されません。</p>
+      <p class="ai-key-note">APIキーは <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a> で取得できます。</p>
       <div class="ai-gen-row">
         <input id="ai-count" class="ai-count-input" type="number" min="5" max="30" value="10">
         <button id="btn-ai-gen" class="btn-ai">
