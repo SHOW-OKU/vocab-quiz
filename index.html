@@ -360,6 +360,34 @@ body::before{
 .wl-src{font-size:10px;color:var(--ink-light);white-space:nowrap}
 
 
+/* ── レベルタブ ── */
+.level-tabs{
+  display:flex;gap:0;
+  background:var(--surface-2);border-radius:var(--r);
+  padding:4px;
+}
+.level-tab{
+  flex:1;padding:9px 4px;border:none;border-radius:10px;
+  font-family:var(--font);font-size:13px;font-weight:600;
+  cursor:pointer;transition:all var(--ease);
+  color:var(--ink-light);background:transparent;white-space:nowrap;
+}
+.level-tab:hover:not(.active){color:var(--accent)}
+.level-tab.active{
+  background:var(--accent);color:#fff;
+  box-shadow:0 2px 8px rgba(85,72,217,.3);
+}
+.level-tab[data-level="700"].active{ background:#0d9e75; box-shadow:0 2px 8px rgba(13,158,117,.3); }
+.level-tab[data-level="800"].active{ background:#c87800; box-shadow:0 2px 8px rgba(200,120,0,.3); }
+
+.hud-badges-row{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;}
+.hud-level-badge{
+  display:inline-block;
+  background:var(--accent-lt);color:var(--accent);
+  font-size:11px;font-weight:700;padding:3px 12px;
+  border-radius:99px;letter-spacing:.02em;
+}
+
 /* ── 単語数バー ── */
 .word-count-bar{
   display:flex;align-items:center;gap:8px;
@@ -460,6 +488,13 @@ body::before{
     <h1 class="logo"><span>Vocab</span>Quiz</h1>
     <p class="start-sub">Slow progress is still progress.</p>
 
+    <!-- レベル選択タブ -->
+    <div class="level-tabs" id="level-tabs">
+      <button class="level-tab active" data-level="600">TOEIC 600</button>
+      <button class="level-tab"        data-level="700">TOEIC 700</button>
+      <button class="level-tab"        data-level="800">TOEIC 800</button>
+    </div>
+
     <div id="today-info-box"></div>
 
     <div class="start-meta-row">
@@ -534,7 +569,10 @@ body::before{
       <span class="hud-timer" id="hud-timer">⏱ <span id="timer-num">15</span>s</span>
       <span id="hud-score" class="hud-score">0pt</span>
     </div>
-    <div class="hud-mode-badge" id="hud-mode-badge">🇺🇸 英→日</div>
+    <div class="hud-badges-row">
+      <div class="hud-mode-badge" id="hud-mode-badge">🇺🇸 英→日</div>
+      <div class="hud-level-badge" id="hud-level-badge">TOEIC 600</div>
+    </div>
   </header>
   <div class="question-card">
     <div class="word-day-badge" id="word-day-badge">Day 1</div>
@@ -634,7 +672,7 @@ const TIME_LIMIT     = 15;
 const BASE_PTS       = 100;
 const BONUS_MAX      = 50;
 const WORDS_PER_DAY  = 10;
-const STORAGE_KEY    = 'vocabQuiz_v3';
+const STORAGE_KEYS   = { '600':'vocabQuiz_600', '700':'vocabQuiz_700', '800':'vocabQuiz_800' };
 const API_URL        = 'https://api.anthropic.com/v1/messages';
 const MODEL          = 'claude-haiku-4-5-20251001';
 
@@ -642,74 +680,144 @@ const MODEL          = 'claude-haiku-4-5-20251001';
    プリセット単語（初期50語）
 ============================================================ */
 const PRESET_WORDS = [
-  {word:'negotiate',type:'verb',meaning:'交渉する',choices:['交渉する','増加する','拒絶する','承認する'],day:1,phonetic:'nɪˈɡoʊʃieɪt',src:'preset'},
-  {word:'significant',type:'adjective',meaning:'重要な、著しい',choices:['軽微な','重要な、著しい','不明確な','一般的な'],day:1,phonetic:'sɪɡˈnɪfɪkənt',src:'preset'},
-  {word:'implement',type:'verb',meaning:'実施する',choices:['削除する','調査する','実施する','延期する'],day:1,phonetic:'ˈɪmplɪment',src:'preset'},
-  {word:'approximately',type:'adverb',meaning:'およそ、約',choices:['ちょうど','最大で','およそ、約','最低でも'],day:1,phonetic:'əˈprɒksɪmətli',src:'preset'},
-  {word:'colleague',type:'noun',meaning:'同僚',choices:['上司','顧客','同僚','競合他社'],day:1,phonetic:'ˈkɒliːɡ',src:'preset'},
-  {word:'efficient',type:'adjective',meaning:'効率的な',choices:['非効率な','効果的な','包括的な','効率的な'],day:1,phonetic:'ɪˈfɪʃənt',src:'preset'},
-  {word:'deadline',type:'noun',meaning:'締め切り',choices:['予算','目標','会議','締め切り'],day:1,phonetic:'ˈdedlaɪn',src:'preset'},
-  {word:'persuade',type:'verb',meaning:'説得する',choices:['命令する','警告する','依頼する','説得する'],day:1,phonetic:'pərˈsweɪd',src:'preset'},
-  {word:'revenue',type:'noun',meaning:'収益、歳入',choices:['費用','損失','在庫','収益、歳入'],day:1,phonetic:'ˈrevənjuː',src:'preset'},
-  {word:'acknowledge',type:'verb',meaning:'認める',choices:['否定する','無視する','提案する','認める'],day:1,phonetic:'əkˈnɒlɪdʒ',src:'preset'},
-  {word:'allocate',type:'verb',meaning:'割り当てる',choices:['割り当てる','削減する','評価する','報告する'],day:2,phonetic:'ˈæləkeɪt',src:'preset'},
-  {word:'subsequent',type:'adjective',meaning:'その後の',choices:['以前の','その後の','同時の','不定期の'],day:2,phonetic:'ˈsʌbsɪkwənt',src:'preset'},
-  {word:'comprehensive',type:'adjective',meaning:'包括的な',choices:['部分的な','簡潔な','包括的な','任意の'],day:2,phonetic:'ˌkɒmprɪˈhensɪv',src:'preset'},
-  {word:'facilitate',type:'verb',meaning:'促進する',choices:['阻止する','促進する','記録する','変更する'],day:2,phonetic:'fəˈsɪlɪteɪt',src:'preset'},
-  {word:'mandatory',type:'adjective',meaning:'義務的な',choices:['任意の','推奨の','義務的な','暫定的な'],day:2,phonetic:'ˈmændətɔːri',src:'preset'},
-  {word:'surplus',type:'noun',meaning:'余剰、黒字',choices:['不足','余剰、黒字','均衡','赤字'],day:2,phonetic:'ˈsɜːrpləs',src:'preset'},
-  {word:'verify',type:'verb',meaning:'確認する、検証する',choices:['修正する','確認する、検証する','提出する','却下する'],day:2,phonetic:'ˈverɪfaɪ',src:'preset'},
-  {word:'fluctuate',type:'verb',meaning:'変動する',choices:['安定する','変動する','低下する','増加する'],day:2,phonetic:'ˈflʌktʃueɪt',src:'preset'},
-  {word:'initiative',type:'noun',meaning:'取り組み、主導権',choices:['取り組み、主導権','結果','障害','報告'],day:2,phonetic:'ɪˈnɪʃətɪv',src:'preset'},
-  {word:'delegate',type:'verb',meaning:'委任する',choices:['拒否する','委任する','監視する','依頼する'],day:2,phonetic:'ˈdelɪɡeɪt',src:'preset'},
-  {word:'considerably',type:'adverb',meaning:'かなり',choices:['わずかに','かなり','ほとんど','均等に'],day:3,phonetic:'kənˈsɪdərəbli',src:'preset'},
-  {word:'obsolete',type:'adjective',meaning:'時代遅れの',choices:['最新の','時代遅れの','有望な','標準的な'],day:3,phonetic:'ˈɒbsəliːt',src:'preset'},
-  {word:'comply',type:'verb',meaning:'従う、準拠する',choices:['従う、準拠する','違反する','提案する','要求する'],day:3,phonetic:'kəmˈplaɪ',src:'preset'},
-  {word:'potential',type:'noun',meaning:'可能性、潜在能力',choices:['実績','可能性、潜在能力','限界','欠点'],day:3,phonetic:'pəˈtenʃəl',src:'preset'},
-  {word:'mutual',type:'adjective',meaning:'相互の',choices:['一方的な','相互の','個別の','共同の'],day:3,phonetic:'ˈmjuːtʃuəl',src:'preset'},
-  {word:'sustainable',type:'adjective',meaning:'持続可能な',choices:['一時的な','持続可能な','急速な','不安定な'],day:3,phonetic:'səˈsteɪnəbəl',src:'preset'},
-  {word:'assessment',type:'noun',meaning:'評価、査定',choices:['提案','計画','評価、査定','通知'],day:3,phonetic:'əˈsesmənt',src:'preset'},
-  {word:'mitigate',type:'verb',meaning:'軽減する',choices:['悪化させる','軽減する','調査する','展開する'],day:3,phonetic:'ˈmɪtɪɡeɪt',src:'preset'},
-  {word:'adjacent',type:'adjective',meaning:'隣接する',choices:['遠い','対面する','隣接する','中央の'],day:3,phonetic:'əˈdʒeɪsənt',src:'preset'},
-  {word:'prompt',type:'adjective',meaning:'迅速な',choices:['遅い','迅速な','正確な','慎重な'],day:3,phonetic:'prɒmpt',src:'preset'},
-  {word:'discrepancy',type:'noun',meaning:'不一致、食い違い',choices:['合意','不一致、食い違い','改善','優先事項'],day:4,phonetic:'dɪˈskrepənsi',src:'preset'},
-  {word:'proactive',type:'adjective',meaning:'積極的な、先手を打つ',choices:['受動的な','積極的な、先手を打つ','慎重な','標準的な'],day:4,phonetic:'ˌproʊˈæktɪv',src:'preset'},
-  {word:'consolidate',type:'verb',meaning:'統合する、強化する',choices:['分割する','延長する','統合する、強化する','削減する'],day:4,phonetic:'kənˈsɒlɪdeɪt',src:'preset'},
-  {word:'leverage',type:'verb',meaning:'活用する',choices:['無視する','活用する','制限する','回避する'],day:4,phonetic:'ˈliːvərɪdʒ',src:'preset'},
-  {word:'tentative',type:'adjective',meaning:'暫定的な',choices:['確定的な','暫定的な','緊急の','定期的な'],day:4,phonetic:'ˈtentətɪv',src:'preset'},
-  {word:'procurement',type:'noun',meaning:'調達',choices:['販売','調達','配送','契約'],day:4,phonetic:'prəˈkjʊərmənt',src:'preset'},
-  {word:'adhere',type:'verb',meaning:'従う、守る',choices:['無視する','変更する','従う、守る','破る'],day:4,phonetic:'ədˈhɪər',src:'preset'},
-  {word:'benchmark',type:'noun',meaning:'基準、指標',choices:['基準、指標','欠陥','目的','成果'],day:4,phonetic:'ˈbentʃmɑːrk',src:'preset'},
-  {word:'streamline',type:'verb',meaning:'合理化する',choices:['複雑化する','合理化する','記録する','監査する'],day:4,phonetic:'ˈstriːmlaɪn',src:'preset'},
-  {word:'subsidy',type:'noun',meaning:'補助金',choices:['課税','補助金','融資','利息'],day:4,phonetic:'ˈsʌbsɪdi',src:'preset'},
-  {word:'arbitration',type:'noun',meaning:'仲裁',choices:['裁判','仲裁','交渉','調停'],day:5,phonetic:'ˌɑːrbɪˈtreɪʃən',src:'preset'},
-  {word:'plausible',type:'adjective',meaning:'もっともらしい',choices:['明らかな','不可能な','もっともらしい','曖昧な'],day:5,phonetic:'ˈplɔːzɪbəl',src:'preset'},
-  {word:'liability',type:'noun',meaning:'負債、責任',choices:['資産','利益','負債、責任','報告'],day:5,phonetic:'ˌlaɪəˈbɪlɪti',src:'preset'},
-  {word:'synopsis',type:'noun',meaning:'要約',choices:['詳細','要約','図表','付録'],day:5,phonetic:'sɪˈnɒpsɪs',src:'preset'},
-  {word:'redundant',type:'adjective',meaning:'不要な、余剰の',choices:['必要な','重要な','不要な、余剰の','追加の'],day:5,phonetic:'rɪˈdʌndənt',src:'preset'},
-  {word:'expedite',type:'verb',meaning:'早める、促進する',choices:['遅らせる','早める、促進する','中断する','調整する'],day:5,phonetic:'ˈekspɪdaɪt',src:'preset'},
-  {word:'imminent',type:'adjective',meaning:'差し迫った',choices:['遠い','過去の','差し迫った','定期的な'],day:5,phonetic:'ˈɪmɪnənt',src:'preset'},
-  {word:'concise',type:'adjective',meaning:'簡潔な',choices:['冗長な','簡潔な','詳細な','複雑な'],day:5,phonetic:'kənˈsaɪs',src:'preset'},
-  {word:'pragmatic',type:'adjective',meaning:'実用的な',choices:['理想的な','実用的な','理論的な','感情的な'],day:5,phonetic:'præɡˈmætɪk',src:'preset'},
-  {word:'incumbent',type:'adjective',meaning:'現職の',choices:['前任の','候補者の','現職の','選任された'],day:5,phonetic:'ɪnˈkʌmbənt',src:'preset'}
+  {word:'negotiate',type:'verb',meaning:'交渉する',choices:['交渉する','増加する','拒絶する','承認する'],day:1,phonetic:'nɪˈɡoʊʃieɪt',level:'600',src:'preset'},
+  {word:'significant',type:'adjective',meaning:'重要な、著しい',choices:['軽微な','重要な、著しい','不明確な','一般的な'],day:1,phonetic:'sɪɡˈnɪfɪkənt',level:'600',src:'preset'},
+  {word:'implement',type:'verb',meaning:'実施する',choices:['削除する','調査する','実施する','延期する'],day:1,phonetic:'ˈɪmplɪment',level:'600',src:'preset'},
+  {word:'approximately',type:'adverb',meaning:'およそ、約',choices:['ちょうど','最大で','およそ、約','最低でも'],day:1,phonetic:'əˈprɒksɪmətli',level:'600',src:'preset'},
+  {word:'colleague',type:'noun',meaning:'同僚',choices:['上司','顧客','同僚','競合他社'],day:1,phonetic:'ˈkɒliːɡ',level:'600',src:'preset'},
+  {word:'efficient',type:'adjective',meaning:'効率的な',choices:['非効率な','効果的な','包括的な','効率的な'],day:1,phonetic:'ɪˈfɪʃənt',level:'600',src:'preset'},
+  {word:'deadline',type:'noun',meaning:'締め切り',choices:['予算','目標','会議','締め切り'],day:1,phonetic:'ˈdedlaɪn',level:'600',src:'preset'},
+  {word:'persuade',type:'verb',meaning:'説得する',choices:['命令する','警告する','依頼する','説得する'],day:1,phonetic:'pərˈsweɪd',level:'600',src:'preset'},
+  {word:'revenue',type:'noun',meaning:'収益、歳入',choices:['費用','損失','在庫','収益、歳入'],day:1,phonetic:'ˈrevənjuː',level:'600',src:'preset'},
+  {word:'acknowledge',type:'verb',meaning:'認める',choices:['否定する','無視する','提案する','認める'],day:1,phonetic:'əkˈnɒlɪdʒ',level:'600',src:'preset'},
+  {word:'allocate',type:'verb',meaning:'割り当てる',choices:['割り当てる','削減する','評価する','報告する'],day:2,phonetic:'ˈæləkeɪt',level:'600',src:'preset'},
+  {word:'subsequent',type:'adjective',meaning:'その後の',choices:['以前の','その後の','同時の','不定期の'],day:2,phonetic:'ˈsʌbsɪkwənt',level:'600',src:'preset'},
+  {word:'comprehensive',type:'adjective',meaning:'包括的な',choices:['部分的な','簡潔な','包括的な','任意の'],day:2,phonetic:'ˌkɒmprɪˈhensɪv',level:'600',src:'preset'},
+  {word:'facilitate',type:'verb',meaning:'促進する',choices:['阻止する','促進する','記録する','変更する'],day:2,phonetic:'fəˈsɪlɪteɪt',level:'600',src:'preset'},
+  {word:'mandatory',type:'adjective',meaning:'義務的な',choices:['任意の','推奨の','義務的な','暫定的な'],day:2,phonetic:'ˈmændətɔːri',level:'600',src:'preset'},
+  {word:'surplus',type:'noun',meaning:'余剰、黒字',choices:['不足','余剰、黒字','均衡','赤字'],day:2,phonetic:'ˈsɜːrpləs',level:'600',src:'preset'},
+  {word:'verify',type:'verb',meaning:'確認する、検証する',choices:['修正する','確認する、検証する','提出する','却下する'],day:2,phonetic:'ˈverɪfaɪ',level:'600',src:'preset'},
+  {word:'fluctuate',type:'verb',meaning:'変動する',choices:['安定する','変動する','低下する','増加する'],day:2,phonetic:'ˈflʌktʃueɪt',level:'600',src:'preset'},
+  {word:'initiative',type:'noun',meaning:'取り組み、主導権',choices:['取り組み、主導権','結果','障害','報告'],day:2,phonetic:'ɪˈnɪʃətɪv',level:'600',src:'preset'},
+  {word:'delegate',type:'verb',meaning:'委任する',choices:['拒否する','委任する','監視する','依頼する'],day:2,phonetic:'ˈdelɪɡeɪt',level:'600',src:'preset'},
+  {word:'considerably',type:'adverb',meaning:'かなり',choices:['わずかに','かなり','ほとんど','均等に'],day:3,phonetic:'kənˈsɪdərəbli',level:'600',src:'preset'},
+  {word:'obsolete',type:'adjective',meaning:'時代遅れの',choices:['最新の','時代遅れの','有望な','標準的な'],day:3,phonetic:'ˈɒbsəliːt',level:'600',src:'preset'},
+  {word:'comply',type:'verb',meaning:'従う、準拠する',choices:['従う、準拠する','違反する','提案する','要求する'],day:3,phonetic:'kəmˈplaɪ',level:'600',src:'preset'},
+  {word:'potential',type:'noun',meaning:'可能性、潜在能力',choices:['実績','可能性、潜在能力','限界','欠点'],day:3,phonetic:'pəˈtenʃəl',level:'600',src:'preset'},
+  {word:'mutual',type:'adjective',meaning:'相互の',choices:['一方的な','相互の','個別の','共同の'],day:3,phonetic:'ˈmjuːtʃuəl',level:'600',src:'preset'},
+  {word:'sustainable',type:'adjective',meaning:'持続可能な',choices:['一時的な','持続可能な','急速な','不安定な'],day:3,phonetic:'səˈsteɪnəbəl',level:'600',src:'preset'},
+  {word:'assessment',type:'noun',meaning:'評価、査定',choices:['提案','計画','評価、査定','通知'],day:3,phonetic:'əˈsesmənt',level:'600',src:'preset'},
+  {word:'mitigate',type:'verb',meaning:'軽減する',choices:['悪化させる','軽減する','調査する','展開する'],day:3,phonetic:'ˈmɪtɪɡeɪt',level:'600',src:'preset'},
+  {word:'adjacent',type:'adjective',meaning:'隣接する',choices:['遠い','対面する','隣接する','中央の'],day:3,phonetic:'əˈdʒeɪsənt',level:'600',src:'preset'},
+  {word:'prompt',type:'adjective',meaning:'迅速な',choices:['遅い','迅速な','正確な','慎重な'],day:3,phonetic:'prɒmpt',level:'600',src:'preset'},
+  {word:'discrepancy',type:'noun',meaning:'不一致、食い違い',choices:['合意','不一致、食い違い','改善','優先事項'],day:4,phonetic:'dɪˈskrepənsi',level:'600',src:'preset'},
+  {word:'proactive',type:'adjective',meaning:'積極的な、先手を打つ',choices:['受動的な','積極的な、先手を打つ','慎重な','標準的な'],day:4,phonetic:'ˌproʊˈæktɪv',level:'600',src:'preset'},
+  {word:'consolidate',type:'verb',meaning:'統合する、強化する',choices:['分割する','延長する','統合する、強化する','削減する'],day:4,phonetic:'kənˈsɒlɪdeɪt',level:'600',src:'preset'},
+  {word:'leverage',type:'verb',meaning:'活用する',choices:['無視する','活用する','制限する','回避する'],day:4,phonetic:'ˈliːvərɪdʒ',level:'600',src:'preset'},
+  {word:'tentative',type:'adjective',meaning:'暫定的な',choices:['確定的な','暫定的な','緊急の','定期的な'],day:4,phonetic:'ˈtentətɪv',level:'600',src:'preset'},
+  {word:'procurement',type:'noun',meaning:'調達',choices:['販売','調達','配送','契約'],day:4,phonetic:'prəˈkjʊərmənt',level:'600',src:'preset'},
+  {word:'adhere',type:'verb',meaning:'従う、守る',choices:['無視する','変更する','従う、守る','破る'],day:4,phonetic:'ədˈhɪər',level:'600',src:'preset'},
+  {word:'benchmark',type:'noun',meaning:'基準、指標',choices:['基準、指標','欠陥','目的','成果'],day:4,phonetic:'ˈbentʃmɑːrk',level:'600',src:'preset'},
+  {word:'streamline',type:'verb',meaning:'合理化する',choices:['複雑化する','合理化する','記録する','監査する'],day:4,phonetic:'ˈstriːmlaɪn',level:'600',src:'preset'},
+  {word:'subsidy',type:'noun',meaning:'補助金',choices:['課税','補助金','融資','利息'],day:4,phonetic:'ˈsʌbsɪdi',level:'600',src:'preset'},
+  {word:'arbitration',type:'noun',meaning:'仲裁',choices:['裁判','仲裁','交渉','調停'],day:5,phonetic:'ˌɑːrbɪˈtreɪʃən',level:'600',src:'preset'},
+  {word:'plausible',type:'adjective',meaning:'もっともらしい',choices:['明らかな','不可能な','もっともらしい','曖昧な'],day:5,phonetic:'ˈplɔːzɪbəl',level:'600',src:'preset'},
+  {word:'liability',type:'noun',meaning:'負債、責任',choices:['資産','利益','負債、責任','報告'],day:5,phonetic:'ˌlaɪəˈbɪlɪti',level:'600',src:'preset'},
+  {word:'synopsis',type:'noun',meaning:'要約',choices:['詳細','要約','図表','付録'],day:5,phonetic:'sɪˈnɒpsɪs',level:'600',src:'preset'},
+  {word:'redundant',type:'adjective',meaning:'不要な、余剰の',choices:['必要な','重要な','不要な、余剰の','追加の'],day:5,phonetic:'rɪˈdʌndənt',level:'600',src:'preset'},
+  {word:'expedite',type:'verb',meaning:'早める、促進する',choices:['遅らせる','早める、促進する','中断する','調整する'],day:5,phonetic:'ˈekspɪdaɪt',level:'600',src:'preset'},
+  {word:'imminent',type:'adjective',meaning:'差し迫った',choices:['遠い','過去の','差し迫った','定期的な'],day:5,phonetic:'ˈɪmɪnənt',level:'600',src:'preset'},
+  {word:'concise',type:'adjective',meaning:'簡潔な',choices:['冗長な','簡潔な','詳細な','複雑な'],day:5,phonetic:'kənˈsaɪs',level:'600',src:'preset'},
+  {word:'pragmatic',type:'adjective',meaning:'実用的な',choices:['理想的な','実用的な','理論的な','感情的な'],day:5,phonetic:'præɡˈmætɪk',level:'600',src:'preset'},
+  {word:'incumbent',type:'adjective',meaning:'現職の',choices:['前任の','候補者の','現職の','選任された'],day:5,phonetic:'ɪnˈkʌmbənt',level:'600',src:'preset'}
+,
+  /* ── TOEIC 700 ── */
+  {word:'adjacent',type:'adjective',meaning:'隣接した',choices:['隣接した','対照的な','分離した','重複した'],level:'700',phonetic:'əˈdʒeɪsənt',src:'preset'},
+  {word:'alleviate',type:'verb',meaning:'軽減する',choices:['悪化させる','軽減する','無視する','拡大する'],level:'700',phonetic:'əˈliːvieɪt',src:'preset'},
+  {word:'ambiguous',type:'adjective',meaning:'曖昧な',choices:['明確な','曖昧な','詳細な','簡潔な'],level:'700',phonetic:'æmˈbɪɡjuəs',src:'preset'},
+  {word:'ameliorate',type:'verb',meaning:'改善する',choices:['悪化させる','改善する','維持する','評価する'],level:'700',phonetic:'əˈmiːliəreɪt',src:'preset'},
+  {word:'anticipate',type:'verb',meaning:'予期する',choices:['回避する','予期する','否定する','遅延する'],level:'700',phonetic:'ænˈtɪsɪpeɪt',src:'preset'},
+  {word:'aptitude',type:'noun',meaning:'適性、才能',choices:['欠点','適性、才能','経験','資格'],level:'700',phonetic:'ˈæptɪtjuːd',src:'preset'},
+  {word:'assertive',type:'adjective',meaning:'積極的な、自己主張の強い',choices:['消極的な','積極的な、自己主張の強い','従順な','慎重な'],level:'700',phonetic:'əˈsɜːrtɪv',src:'preset'},
+  {word:'calibrate',type:'verb',meaning:'調整する、較正する',choices:['調整する、較正する','破壊する','測定する','評価する'],level:'700',phonetic:'ˈkælɪbreɪt',src:'preset'},
+  {word:'cognizant',type:'adjective',meaning:'認識している',choices:['無知な','認識している','疑っている','忘れている'],level:'700',phonetic:'ˈkɒɡnɪzənt',src:'preset'},
+  {word:'commensurate',type:'adjective',meaning:'釣り合った',choices:['不均衡な','釣り合った','超過した','不十分な'],level:'700',phonetic:'kəˈmenʃərət',src:'preset'},
+  {word:'concede',type:'verb',meaning:'認める、譲歩する',choices:['拒否する','主張する','認める、譲歩する','批判する'],level:'700',phonetic:'kənˈsiːd',src:'preset'},
+  {word:'conjecture',type:'noun',meaning:'推測',choices:['事実','推測','証拠','結論'],level:'700',phonetic:'kənˈdʒektʃər',src:'preset'},
+  {word:'contingent',type:'adjective',meaning:'条件次第の',choices:['確実な','条件次第の','独立した','任意の'],level:'700',phonetic:'kənˈtɪndʒənt',src:'preset'},
+  {word:'corroborate',type:'verb',meaning:'裏付ける',choices:['否定する','裏付ける','疑う','変更する'],level:'700',phonetic:'kəˈrɒbəreɪt',src:'preset'},
+  {word:'culminate',type:'verb',meaning:'最高潮に達する',choices:['始まる','最高潮に達する','低下する','停止する'],level:'700',phonetic:'ˈkʌlmɪneɪt',src:'preset'},
+  {word:'deferral',type:'noun',meaning:'延期',choices:['延期','前倒し','承認','拒否'],level:'700',phonetic:'dɪˈfɜːrəl',src:'preset'},
+  {word:'delineate',type:'verb',meaning:'明確に述べる',choices:['曖昧にする','明確に述べる','削除する','省略する'],level:'700',phonetic:'dɪˈlɪnieɪt',src:'preset'},
+  {word:'disparity',type:'noun',meaning:'格差、不均衡',choices:['均衡','格差、不均衡','類似点','合意'],level:'700',phonetic:'dɪˈspærɪti',src:'preset'},
+  {word:'equitable',type:'adjective',meaning:'公平な',choices:['不公平な','公平な','偏った','優遇された'],level:'700',phonetic:'ˈekwɪtəbəl',src:'preset'},
+  {word:'exacerbate',type:'verb',meaning:'悪化させる',choices:['改善する','悪化させる','維持する','解決する'],level:'700',phonetic:'ɪɡˈzæsəbeɪt',src:'preset'},
+  {word:'exemplify',type:'verb',meaning:'例示する',choices:['否定する','例示する','隠す','批判する'],level:'700',phonetic:'ɪɡˈzemplɪfaɪ',src:'preset'},
+  {word:'forthcoming',type:'adjective',meaning:'近々予定の、協力的な',choices:['過去の','近々予定の、協力的な','予期しない','定期的な'],level:'700',phonetic:'ˌfɔːrθˈkʌmɪŋ',src:'preset'},
+  {word:'holistic',type:'adjective',meaning:'全体論的な',choices:['部分的な','全体論的な','個別の','限定的な'],level:'700',phonetic:'həˈlɪstɪk',src:'preset'},
+  {word:'impede',type:'verb',meaning:'妨げる',choices:['促進する','妨げる','支援する','評価する'],level:'700',phonetic:'ɪmˈpiːd',src:'preset'},
+  {word:'incentivize',type:'verb',meaning:'動機づける',choices:['抑制する','動機づける','強制する','評価する'],level:'700',phonetic:'ɪnˈsentɪvaɪz',src:'preset'},
+  {word:'inconclusive',type:'adjective',meaning:'決定的でない',choices:['明確な','決定的でない','最終的な','詳細な'],level:'700',phonetic:'ˌɪnkənˈkluːsɪv',src:'preset'},
+  {word:'indispensable',type:'adjective',meaning:'不可欠な',choices:['任意の','不可欠な','余分な','補助的な'],level:'700',phonetic:'ˌɪndɪˈspensəbəl',src:'preset'},
+  {word:'inherent',type:'adjective',meaning:'固有の、本質的な',choices:['外部の','固有の、本質的な','一時的な','人工的な'],level:'700',phonetic:'ɪnˈhɪərənt',src:'preset'},
+  {word:'innovative',type:'adjective',meaning:'革新的な',choices:['従来の','革新的な','保守的な','標準的な'],level:'700',phonetic:'ˈɪnəveɪtɪv',src:'preset'},
+  {word:'meticulous',type:'adjective',meaning:'几帳面な、細心の',choices:['大雑把な','几帳面な、細心の','迅速な','効率的な'],level:'700',phonetic:'məˈtɪkjələs',src:'preset'},
+
+  /* ── TOEIC 800 ── */
+  {word:'abate',type:'verb',meaning:'弱まる、軽減する',choices:['強まる','弱まる、軽減する','維持する','急増する'],level:'800',phonetic:'əˈbeɪt',src:'preset'},
+  {word:'acumen',type:'noun',meaning:'洞察力、判断力',choices:['無知','洞察力、判断力','経験','資格'],level:'800',phonetic:'ˈækjəmən',src:'preset'},
+  {word:'adjudicate',type:'verb',meaning:'裁定する',choices:['交渉する','裁定する','調査する','無視する'],level:'800',phonetic:'əˈdʒuːdɪkeɪt',src:'preset'},
+  {word:'admonish',type:'verb',meaning:'戒める、忠告する',choices:['褒める','戒める、忠告する','無視する','支援する'],level:'800',phonetic:'ədˈmɒnɪʃ',src:'preset'},
+  {word:'amalgamate',type:'verb',meaning:'合併する',choices:['分離する','合併する','縮小する','評価する'],level:'800',phonetic:'əˈmælɡəmeɪt',src:'preset'},
+  {word:'anachronism',type:'noun',meaning:'時代錯誤',choices:['革新','時代錯誤','伝統','進歩'],level:'800',phonetic:'əˈnækrənɪzəm',src:'preset'},
+  {word:'anomalous',type:'adjective',meaning:'異常な、変則的な',choices:['正常な','異常な、変則的な','標準的な','一般的な'],level:'800',phonetic:'əˈnɒmələs',src:'preset'},
+  {word:'ascertain',type:'verb',meaning:'確かめる',choices:['推測する','確かめる','否定する','無視する'],level:'800',phonetic:'ˌæsəˈteɪn',src:'preset'},
+  {word:'caveat',type:'noun',meaning:'警告、条件',choices:['保証','警告、条件','承認','推薦'],level:'800',phonetic:'ˈkæviæt',src:'preset'},
+  {word:'circumvent',type:'verb',meaning:'回避する、出し抜く',choices:['直面する','回避する、出し抜く','協力する','従う'],level:'800',phonetic:'ˌsɜːrkəmˈvent',src:'preset'},
+  {word:'coalesce',type:'verb',meaning:'合体する、融合する',choices:['分裂する','合体する、融合する','競合する','分析する'],level:'800',phonetic:'ˌkoʊəˈles',src:'preset'},
+  {word:'concomitant',type:'adjective',meaning:'付随する',choices:['独立した','付随する','対立する','先行する'],level:'800',phonetic:'kənˈkɒmɪtənt',src:'preset'},
+  {word:'credulous',type:'adjective',meaning:'信じやすい',choices:['懐疑的な','信じやすい','批判的な','慎重な'],level:'800',phonetic:'ˈkredjʊləs',src:'preset'},
+  {word:'debacle',type:'noun',meaning:'大失敗、崩壊',choices:['成功','大失敗、崩壊','改革','発展'],level:'800',phonetic:'dɪˈbɑːkəl',src:'preset'},
+  {word:'delineation',type:'noun',meaning:'描写、輪郭',choices:['省略','描写、輪郭','削除','概要'],level:'800',phonetic:'dɪˌlɪniˈeɪʃən',src:'preset'},
+  {word:'disseminate',type:'verb',meaning:'広める、普及させる',choices:['隠す','広める、普及させる','制限する','収集する'],level:'800',phonetic:'dɪˈsemɪneɪt',src:'preset'},
+  {word:'ebullient',type:'adjective',meaning:'溢れるほど元気な',choices:['憂鬱な','溢れるほど元気な','落ち着いた','疲れた'],level:'800',phonetic:'ɪˈbʊliənt',src:'preset'},
+  {word:'efficacious',type:'adjective',meaning:'効果的な',choices:['非効率な','効果的な','有害な','曖昧な'],level:'800',phonetic:'ˌefɪˈkeɪʃəs',src:'preset'},
+  {word:'equivocate',type:'verb',meaning:'言葉を濁す',choices:['明言する','言葉を濁す','批判する','同意する'],level:'800',phonetic:'ɪˈkwɪvəkeɪt',src:'preset'},
+  {word:'ersatz',type:'adjective',meaning:'代用の、模造の',choices:['本物の','代用の、模造の','高品質の','改良された'],level:'800',phonetic:'ˈɜːrsæts',src:'preset'},
+  {word:'excoriate',type:'verb',meaning:'厳しく批判する',choices:['褒める','厳しく批判する','無視する','支持する'],level:'800',phonetic:'ɪkˈskɔːrieɪt',src:'preset'},
+  {word:'exigent',type:'adjective',meaning:'緊急の、要求の多い',choices:['余裕のある','緊急の、要求の多い','任意の','軽微な'],level:'800',phonetic:'ˈeksɪdʒənt',src:'preset'},
+  {word:'fallacious',type:'adjective',meaning:'誤った、虚偽の',choices:['正確な','誤った、虚偽の','部分的な','曖昧な'],level:'800',phonetic:'fəˈleɪʃəs',src:'preset'},
+  {word:'fiduciary',type:'adjective',meaning:'信託の、受託者の',choices:['個人的な','信託の、受託者の','任意の','競争的な'],level:'800',phonetic:'fɪˈdjuːʃieri',src:'preset'},
+  {word:'garrulous',type:'adjective',meaning:'おしゃべりな',choices:['無口な','おしゃべりな','礼儀正しい','思慮深い'],level:'800',phonetic:'ˈɡærələs',src:'preset'},
+  {word:'impetuous',type:'adjective',meaning:'衝動的な',choices:['慎重な','衝動的な','計画的な','冷静な'],level:'800',phonetic:'ɪmˈpetʃuəs',src:'preset'},
+  {word:'impugn',type:'verb',meaning:'異議を唱える',choices:['支持する','異議を唱える','承認する','無視する'],level:'800',phonetic:'ɪmˈpjuːn',src:'preset'},
+  {word:'inveterate',type:'adjective',meaning:'根深い、常習的な',choices:['一時的な','根深い、常習的な','新しい','偶発的な'],level:'800',phonetic:'ɪnˈvetərət',src:'preset'},
+  {word:'loquacious',type:'adjective',meaning:'おしゃべりな、多弁な',choices:['寡黙な','おしゃべりな、多弁な','思慮深い','慎重な'],level:'800',phonetic:'ləˈkweɪʃəs',src:'preset'},
+  {word:'obfuscate',type:'verb',meaning:'曖昧にする、混乱させる',choices:['明確にする','曖昧にする、混乱させる','単純化する','強調する'],level:'800',phonetic:'ˈɒbfʌskeɪt',src:'preset'}
 ];
 
 /* ============================================================
    LocalStorage
 ============================================================ */
+let currentLevel = '600';  // '600' | '700' | '800'
+
 function loadDB(){
-  try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)||'null') || mkDB(); }
+  const key = STORAGE_KEYS[currentLevel];
+  try{ return JSON.parse(localStorage.getItem(key)||'null') || mkDB(); }
   catch{ return mkDB(); }
 }
-function saveDB(db){ try{localStorage.setItem(STORAGE_KEY,JSON.stringify(db));}catch{} }
+function saveDB(db){
+  const key = STORAGE_KEYS[currentLevel];
+  try{ localStorage.setItem(key, JSON.stringify(db)); } catch{}
+}
 function mkDB(){
   return { startDate:null, dailyLogs:{}, wordStats:{}, totalPlays:0, aiWords:[] };
 }
 
-/* ── 全単語を返す（プリセット＋AI生成） ── */
+/* ── 全単語を返す（プリセット＋AI生成、現在のレベルのみ） ── */
 function allWords(db){
-  const aiSet = new Set((db.aiWords||[]).map(w=>w.word));
-  const presets = PRESET_WORDS.filter(w=>!aiSet.has(w.word));
+  const aiSet   = new Set((db.aiWords||[]).map(w=>w.word));
+  const presets = PRESET_WORDS.filter(w => w.level===currentLevel && !aiSet.has(w.word));
   return [...presets, ...(db.aiWords||[])];
 }
 
@@ -807,11 +915,12 @@ async function onGenerate(){
   preview.classList.add('visible');
 
   /* プロンプト */
-  const prompt = `あなたはTOEIC600レベルの英単語クイズ作成の専門家です。
+  const levelLabel = {'600':'600点','700':'700点','800':'800点'}[currentLevel];
+  const prompt = `あなたはTOEIC${levelLabel}レベルの英単語クイズ作成の専門家です。
 以下の条件で英単語を${n}語生成してください。
 
 【条件】
-- TOEIC600点レベルのビジネス・日常英語
+- TOEIC${levelLabel}レベルのビジネス・日常英語
 - 既存単語と重複しない: ${existing.join(', ')}
 - 必ず正確なJSON配列のみを返す（説明文・コードブロック不要）
 
@@ -890,6 +999,7 @@ choicesは必ず「正解の意味」を含む4択にしてください。誤答
         meaning: item.meaning,
         choices: item.choices.slice(0,4),
         day:     dayNum,
+        level:   currentLevel,
         src:     'ai'
       };
       db.aiWords.push(newWord);
@@ -1027,6 +1137,17 @@ function syncModeButtons(){
   $('mode-ja-en').classList.toggle('active', quizMode==='ja-en');
   const badge = $('hud-mode-badge');
   if(badge) badge.textContent = quizMode==='en-ja' ? '🇺🇸 英→日' : '🇯🇵 日→英';
+}
+
+function syncLevelTabs(){
+  document.querySelectorAll('.level-tab').forEach(t=>{
+    t.classList.toggle('active', t.dataset.level===currentLevel);
+  });
+  const lb = $('hud-level-badge');
+  if(lb) lb.textContent = 'TOEIC ' + currentLevel;
+  // 単語数・統計をレベル別に更新
+  updateWordCount(loadDB());
+  initStart();
 }
 
 function renderQuestion(){
@@ -1502,6 +1623,12 @@ on('btn-key-save',  'click', ()=>{
 on('btn-start',       'click', startQuiz);
 on('mode-en-ja',      'click', ()=>{ quizMode='en-ja'; syncModeButtons(); });
 on('mode-ja-en',      'click', ()=>{ quizMode='ja-en'; syncModeButtons(); });
+document.querySelectorAll('.level-tab').forEach(tab=>{
+  tab.addEventListener('click', ()=>{
+    currentLevel = tab.dataset.level;
+    syncLevelTabs();
+  });
+});
 on('btn-graph',       'click', showGraph);
 on('btn-retry',       'click', startQuiz);
 on('btn-graph2',      'click', showGraph);
