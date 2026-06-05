@@ -3,7 +3,7 @@
  * オフラインでも動作するようにリソースをキャッシュする
  */
 
-const CACHE_NAME = 'vocabquiz-v1';
+const CACHE_NAME = 'vocabquiz-v2';
 
 // キャッシュするファイル一覧
 const ASSETS = [
