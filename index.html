@@ -1251,7 +1251,7 @@ function selectAnswer(chosen, q, correctKey){
     hideExamplePanel();
     state.current++;
     state.current>=state.quizCount?showResult():renderQuestion();
-  }, 3500);
+  }, 6000);
 }
 
 function timeUp(q){
@@ -1264,7 +1264,7 @@ function timeUp(q){
     hideExamplePanel();
     state.current++;
     state.current>=state.quizCount?showResult():renderQuestion();
-  }, 3500);
+  }, 6000);
 }
 
 /* ============================================================
@@ -1383,6 +1383,68 @@ const EXAMPLE_SENTENCES = {
   concise:       {en:"Please write a concise summary of the key findings.",            ja:"主な調査結果の簡潔な要約を書いてください。"},
   pragmatic:     {en:"We need a pragmatic solution that we can implement quickly.",    ja:"迅速に実施できる実用的な解決策が必要だ。"},
   incumbent:     {en:"The incumbent CEO announced his retirement at the shareholder meeting.",ja:"現職のCEOは株主総会で退任を発表した。"},
+  /* ── TOEIC 700 例文 ── */
+  adjacent:      {en:"The new office building is adjacent to the main station.",ja:"新しいオフィスビルはメインステーションの隣にある。"},
+  alleviate:     {en:"The new medication helped alleviate the patient's pain.",ja:"新しい薬が患者の痛みを軽減するのに役立った。"},
+  ambiguous:     {en:"The contract terms were ambiguous and needed clarification.",ja:"契約条件が曖昧で明確化が必要だった。"},
+  ameliorate:    {en:"The new policy aims to ameliorate working conditions.",ja:"新しい方針は労働環境を改善することを目的としている。"},
+  anticipate:    {en:"We anticipate a significant increase in demand next quarter.",ja:"来四半期に需要の大幅な増加を予期している。"},
+  aptitude:      {en:"She demonstrated a natural aptitude for data analysis.",ja:"彼女はデータ分析に対する生まれながらの才能を示した。"},
+  assertive:     {en:"An assertive communication style is valued in negotiations.",ja:"積極的なコミュニケーションスタイルは交渉で評価される。"},
+  calibrate:     {en:"The engineers need to calibrate the equipment before testing.",ja:"エンジニアはテスト前に機器を調整する必要がある。"},
+  cognizant:     {en:"Management must be cognizant of the risks involved.",ja:"経営陣は関連するリスクを認識していなければならない。"},
+  commensurate:  {en:"Her salary is commensurate with her level of experience.",ja:"彼女の給与は経験レベルに釣り合っている。"},
+  concede:       {en:"The manager conceded that the project timeline was too tight.",ja:"マネージャーはプロジェクトのスケジュールが厳しすぎることを認めた。"},
+  conjecture:    {en:"Without data, any conclusion would be mere conjecture.",ja:"データなしでは、いかなる結論も単なる推測に過ぎない。"},
+  contingent:    {en:"The deal is contingent on the board's approval.",ja:"この取引は取締役会の承認次第だ。"},
+  corroborate:   {en:"The witness's testimony corroborated the manager's account.",ja:"証人の証言はマネージャーの説明を裏付けた。"},
+  culminate:     {en:"Years of research culminated in a groundbreaking discovery.",ja:"何年もの研究が画期的な発見で最高潮に達した。"},
+  deferral:      {en:"The board approved a deferral of the project launch.",ja:"取締役会はプロジェクト開始の延期を承認した。"},
+  delineate:     {en:"The report clearly delineates each team member's responsibilities.",ja:"レポートは各チームメンバーの責任を明確に述べている。"},
+  disparity:     {en:"There is a significant disparity in wages between departments.",ja:"部門間の賃金に大きな格差がある。"},
+  equitable:     {en:"We strive to ensure an equitable distribution of resources.",ja:"リソースの公平な配分を確保するよう努めている。"},
+  exacerbate:    {en:"The supply shortage exacerbated the company's financial problems.",ja:"供給不足が会社の財務問題を悪化させた。"},
+  exemplify:     {en:"This project exemplifies our commitment to sustainability.",ja:"このプロジェクトは持続可能性への取り組みを例示している。"},
+  forthcoming:   {en:"The forthcoming product launch has generated significant interest.",ja:"近々予定の製品発売が大きな関心を集めている。"},
+  holistic:      {en:"We need a holistic approach to address this complex issue.",ja:"この複雑な問題に対処するには全体論的なアプローチが必要だ。"},
+  impede:        {en:"Bureaucratic procedures can impede business growth.",ja:"官僚的な手続きがビジネスの成長を妨げる可能性がある。"},
+  incentivize:   {en:"The bonus scheme is designed to incentivize high performance.",ja:"ボーナス制度は高いパフォーマンスへの動機づけのために設計されている。"},
+  inconclusive:  {en:"The initial test results were inconclusive and required further analysis.",ja:"最初のテスト結果は決定的でなく、さらなる分析が必要だった。"},
+  indispensable: {en:"Good communication skills are indispensable in business.",ja:"良いコミュニケーション能力はビジネスに不可欠だ。"},
+  inherent:      {en:"There is an inherent risk in any new business venture.",ja:"あらゆる新しいビジネスベンチャーには固有のリスクがある。"},
+  innovative:    {en:"The company is known for its innovative approach to problem-solving.",ja:"その会社は革新的な問題解決アプローチで知られている。"},
+  meticulous:    {en:"She is meticulous about checking every detail of the report.",ja:"彼女はレポートの細部まで几帳面にチェックする。"},
+  /* ── TOEIC 800 例文 ── */
+  abate:         {en:"The storm gradually abated throughout the night.",ja:"嵐は夜間を通じて徐々に弱まった。"},
+  acumen:        {en:"His business acumen helped the company navigate difficult times.",ja:"彼のビジネスの洞察力が会社の困難な時期を乗り越える助けになった。"},
+  adjudicate:    {en:"An independent panel was appointed to adjudicate the dispute.",ja:"独立したパネルが紛争を裁定するために任命された。"},
+  admonish:      {en:"The supervisor admonished the team for missing the deadline.",ja:"上司は締め切りを過ぎたことでチームを戒めた。"},
+  amalgamate:    {en:"The two companies decided to amalgamate to increase market share.",ja:"2社はマーケットシェアを拡大するために合併することを決めた。"},
+  anachronism:   {en:"Using fax machines in the digital age is considered an anachronism.",ja:"デジタル時代にファックスを使うことは時代錯誤とみなされる。"},
+  anomalous:     {en:"The auditors flagged several anomalous transactions for review.",ja:"監査役はレビューのためにいくつかの異常な取引に注目した。"},
+  ascertain:     {en:"We need to ascertain the root cause of the system failure.",ja:"システム障害の根本原因を確かめる必要がある。"},
+  caveat:        {en:"The contract came with an important caveat about delivery times.",ja:"契約には納期に関する重要な警告が付いていた。"},
+  circumvent:    {en:"Some firms attempt to circumvent regulations through loopholes.",ja:"一部の企業は抜け穴を利用して規制を回避しようとする。"},
+  coalesce:      {en:"The separate divisions coalesced into a unified team.",ja:"別々の部門が統一されたチームに融合した。"},
+  concomitant:   {en:"Rapid growth often brings concomitant challenges in management.",ja:"急速な成長はしばしばマネジメントにおける付随する課題をもたらす。"},
+  credulous:     {en:"A credulous investor may fall victim to fraudulent schemes.",ja:"信じやすい投資家は詐欺的な計画の犠牲になるかもしれない。"},
+  debacle:       {en:"The product launch turned into a complete debacle due to poor planning.",ja:"製品発売は計画不足により完全な大失敗に終わった。"},
+  delineation:   {en:"A clear delineation of roles is essential for team success.",ja:"役割の明確な描写はチームの成功に不可欠だ。"},
+  disseminate:   {en:"Social media can disseminate information at unprecedented speed.",ja:"ソーシャルメディアは前例のない速さで情報を広めることができる。"},
+  ebullient:     {en:"Her ebullient personality made her a natural team leader.",ja:"彼女の溢れるほど元気な性格が彼女を生まれながらのチームリーダーにした。"},
+  efficacious:   {en:"The new treatment proved highly efficacious in clinical trials.",ja:"新しい治療法は臨床試験で高い効果を示した。"},
+  equivocate:    {en:"The CEO equivocated when asked about the merger plans.",ja:"CEOは合併計画について聞かれたとき言葉を濁した。"},
+  ersatz:        {en:"The ersatz leather product was far cheaper than the real thing.",ja:"代用皮革製品は本物よりはるかに安かった。"},
+  excoriate:     {en:"The press excoriated the company for its environmental violations.",ja:"報道機関は環境違反について会社を厳しく批判した。"},
+  exigent:       {en:"The exigent circumstances required an immediate response.",ja:"緊急の状況が即座の対応を必要とした。"},
+  fallacious:    {en:"The report was based on fallacious assumptions about market growth.",ja:"レポートは市場成長についての誤った仮定に基づいていた。"},
+  fiduciary:     {en:"Directors have a fiduciary duty to act in shareholders' interests.",ja:"取締役は株主の利益のために行動する信託義務を持つ。"},
+  garrulous:     {en:"The garrulous salesperson talked for an hour without pause.",ja:"おしゃべりなセールスパーソンは休みなく1時間話し続けた。"},
+  impetuous:     {en:"An impetuous decision led to significant financial losses.",ja:"衝動的な決断が大きな財務的損失につながった。"},
+  impugn:        {en:"The lawyer sought to impugn the credibility of the witness.",ja:"弁護士は証人の信頼性に異議を唱えようとした。"},
+  inveterate:    {en:"He is an inveterate risk-taker who thrives under pressure.",ja:"彼はプレッシャーの下で flourish する根深いリスクテイカーだ。"},
+  loquacious:    {en:"The loquacious presenter exceeded his allotted time by far.",ja:"多弁な発表者は割り当てられた時間を大幅に超過した。"},
+  obfuscate:     {en:"The complex jargon seemed designed to obfuscate rather than clarify.",ja:"複雑な専門用語は明確にするよりも曖昧にするために設計されているようだった。"},
 };
 
 function showExamplePanel(q){
